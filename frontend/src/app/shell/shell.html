@@ -1,0 +1,10 @@
+<div class="flex h-full min-h-screen flex-col bg-[var(--mat-sys-surface)] text-[var(--mat-sys-on-surface)]">
+  <mat-toolbar color="primary" class="shrink-0">
+    <mat-icon aria-hidden="true">description</mat-icon>
+    <span class="ml-2 text-lg font-medium">{{ title() }}</span>
+  </mat-toolbar>
+
+  <main class="flex flex-1 items-center justify-center p-8">
+    <router-outlet />
+  </main>
+</div>

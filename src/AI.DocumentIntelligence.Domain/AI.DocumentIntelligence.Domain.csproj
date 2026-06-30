@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>AI.DocumentIntelligence.Domain</RootNamespace>
+    <AssemblyName>AI.DocumentIntelligence.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Domain is the innermost layer of Clean Architecture: it must reference NOTHING
+    (no other src project, no third-party package). Keep this file dependency-free.
+  -->
+
+</Project>

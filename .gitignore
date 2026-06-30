@@ -1,0 +1,110 @@
+## =============================
+## .NET
+## =============================
+bin/
+obj/
+out/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.dbmdl
+*.dbproj.schemaview
+*.publishsettings
+node_modules/
+*.azurePubxml
+*.pubxml
+*.pubxml.user
+*.publishproj
+PublishScripts/
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.psess
+*.vsp
+*.vspx
+*.sap
+TestResults/
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+coverage/
+*.trx
+
+## EF Core
+*.efmigrationshistory
+
+## =============================
+## Node / Angular / Frontend
+## =============================
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/.nx/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tsbuildinfo
+
+## =============================
+## IDE / Editors
+## =============================
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+## =============================
+## macOS
+## =============================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+## =============================
+## Secrets / env / local config
+## =============================
+.env
+.env.*
+!.env.example
+*.secrets.json
+appsettings.*.local.json
+**/secrets.json
+.user-secrets/
+
+## =============================
+## Docker / local data volumes
+## =============================
+.docker-data/
+docker-compose.override.local.yml
+
+## =============================
+## Misc
+## =============================
+*.log
+*.tmp
+*.bak

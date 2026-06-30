@@ -1,0 +1,42 @@
+## Production override. Use alongside the base file:
+##   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+##
+## Compose override files merge with the base file rather than replace it, so
+## `postgres`/`azurite` from docker-compose.yml are still defined here. In a
+## real production deployment those managed-service equivalents (Azure
+## Database for PostgreSQL with pgvector, Azure Blob Storage, Azure AI Search)
+## are provisioned outside compose entirely — this override only tightens the
+## `api`/`frontend` services and should be paired with a deploy target
+## (Container Apps / AKS manifest, see docs/DEPLOYMENT.md) that never runs the
+## local-only services at all.
+
+name: ai-document-intelligence
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m

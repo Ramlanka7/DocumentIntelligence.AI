@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>AI.DocumentIntelligence.Infrastructure</RootNamespace>
+    <AssemblyName>AI.DocumentIntelligence.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Infrastructure implements interfaces declared in Application/Domain (AI providers,
+    Azure AI Search, document processors, auth). It must NOT be referenced by Application
+    or Domain — only composed by Api at startup.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\AI.DocumentIntelligence.Application\AI.DocumentIntelligence.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" />
+    <PackageReference Include="Azure.Search.Documents" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+  </ItemGroup>
+
+</Project>

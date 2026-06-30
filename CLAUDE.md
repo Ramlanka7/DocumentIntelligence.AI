@@ -68,7 +68,27 @@ For role-specific work, delegate to the project subagents instead of re-describi
 - Report failures honestly with the output — never claim green while red.
 
 ## Commands
-> Filled in once the T00 skeleton exists.
-- Backend: `dotnet build`, `dotnet test`, `dotnet format`
-- Frontend (in `frontend/`): `npm ci && npm run build`, `npm test`
-- Local stack: `docker compose up -d`
+
+### Backend (repo root, `AI.DocumentIntelligence.sln`)
+- Restore: `dotnet restore`
+- Build (zero warnings/errors, `TreatWarningsAsErrors` is on): `dotnet build`
+- Test: `dotnet test`
+- Format / style check: `dotnet format` · `dotnet format --verify-no-changes` (CI)
+- Run the API directly: `dotnet run --project src/AI.DocumentIntelligence.Api`
+- EF Core migrations (once `Persistence` has a `DbContext`):
+  `dotnet ef migrations add <Name> --project src/AI.DocumentIntelligence.Persistence --startup-project src/AI.DocumentIntelligence.Api`
+  `dotnet ef database update --project src/AI.DocumentIntelligence.Persistence --startup-project src/AI.DocumentIntelligence.Api`
+
+### Frontend (in `frontend/`)
+- Install (reproducible, CI-equivalent): `npm ci`
+- Build: `npm run build`
+- Test (headless): `npm test -- --watch=false --browsers=ChromeHeadless`
+- Serve locally: `npm start` (http://localhost:4200)
+
+### Local stack (Docker Compose)
+- Copy env template once: `cp .env.example .env`
+- Start everything (Postgres+pgvector, Azurite, Api, frontend): `docker compose up -d`
+- Validate compose files without starting anything: `docker compose config`
+- Production-shaped overlay: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`
+- Tear down: `docker compose down` (add `-v` to also drop the Postgres/Azurite volumes)
+- Endpoints once up: API `http://localhost:8080/health`, Swagger `http://localhost:8080/swagger`, frontend `http://localhost:4200`
