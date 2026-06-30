@@ -1,3 +1,6 @@
+using AI.DocumentIntelligence.Domain.Common;
+using AI.DocumentIntelligence.Domain.Errors;
+
 namespace AI.DocumentIntelligence.Domain.ValueObjects;
 
 /// <summary>
@@ -12,4 +15,30 @@ public sealed record Citation(
     string DocumentName,
     int PageNumber,
     string ParagraphReference,
-    double ConfidenceScore);
+    double ConfidenceScore)
+{
+    /// <summary>Creates a validated <see cref="Citation"/>, enforcing the platform's citation invariants.</summary>
+    public static Result<Citation> Create(
+        string documentName,
+        int pageNumber,
+        string paragraphReference,
+        double confidenceScore)
+    {
+        if (string.IsNullOrWhiteSpace(documentName))
+        {
+            return Result.Failure<Citation>(DomainErrors.Citation.MissingDocumentName);
+        }
+
+        if (pageNumber < 1)
+        {
+            return Result.Failure<Citation>(DomainErrors.Citation.InvalidPageNumber);
+        }
+
+        if (confidenceScore is < 0.0 or > 1.0)
+        {
+            return Result.Failure<Citation>(DomainErrors.Citation.InvalidConfidenceScore);
+        }
+
+        return Result.Success(new Citation(documentName, pageNumber, paragraphReference, confidenceScore));
+    }
+}

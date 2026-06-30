@@ -13,7 +13,7 @@ public interface IChatService
     /// <param name="request">The chat request, including history and document scope.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The grounded answer with citations, or a failure <see cref="Result"/>.</returns>
-    Task<Result<ChatResponse>> AskAsync(
+    public Task<Result<ChatResponse>> AskAsync(
         ChatRequest request,
         CancellationToken cancellationToken = default);
 }

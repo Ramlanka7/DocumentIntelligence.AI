@@ -13,7 +13,7 @@ public interface ISearchService
     /// <param name="chunks">The chunks to index.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A success or failure <see cref="Result"/>.</returns>
-    Task<Result> IndexAsync(
+    public Task<Result> IndexAsync(
         IReadOnlyList<SearchableChunk> chunks,
         CancellationToken cancellationToken = default);
 
@@ -21,7 +21,7 @@ public interface ISearchService
     /// <param name="request">The search request.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The ranked hits, or a failure <see cref="Result"/>.</returns>
-    Task<Result<IReadOnlyList<SearchHit>>> SearchAsync(
+    public Task<Result<IReadOnlyList<SearchHit>>> SearchAsync(
         SearchRequest request,
         CancellationToken cancellationToken = default);
 
@@ -29,7 +29,7 @@ public interface ISearchService
     /// <param name="documentId">The document whose chunks should be removed.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A success or failure <see cref="Result"/>.</returns>
-    Task<Result> DeleteByDocumentAsync(
+    public Task<Result> DeleteByDocumentAsync(
         Guid documentId,
         CancellationToken cancellationToken = default);
 }

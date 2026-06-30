@@ -7,14 +7,14 @@ namespace AI.DocumentIntelligence.Application.Abstractions.Identity;
 public interface ICurrentUser
 {
     /// <summary>The authenticated user's identifier, or null when unauthenticated.</summary>
-    Guid? UserId { get; }
+    public Guid? UserId { get; }
 
     /// <summary>The authenticated user's email, or null when unavailable.</summary>
-    string? Email { get; }
+    public string? Email { get; }
 
     /// <summary>The roles assigned to the current user.</summary>
-    IReadOnlyList<string> Roles { get; }
+    public IReadOnlyList<string> Roles { get; }
 
     /// <summary>Whether the current request is authenticated.</summary>
-    bool IsAuthenticated { get; }
+    public bool IsAuthenticated { get; }
 }

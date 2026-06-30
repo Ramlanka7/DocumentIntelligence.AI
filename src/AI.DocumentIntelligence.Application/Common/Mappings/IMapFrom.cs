@@ -13,5 +13,5 @@ public interface IMapFrom<TSource>
 {
     /// <summary>Configures the mapping. The default creates a straightforward member map.</summary>
     /// <param name="profile">The profile being built.</param>
-    void Mapping(Profile profile) => profile.CreateMap(typeof(TSource), GetType());
+    public void Mapping(Profile profile) => profile.CreateMap(typeof(TSource), GetType());
 }

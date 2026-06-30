@@ -13,7 +13,7 @@ public interface IComparisonService
     /// <param name="request">The comparison request.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The structured comparison result with citations, or a failure <see cref="Result"/>.</returns>
-    Task<Result<ComparisonResult>> CompareAsync(
+    public Task<Result<ComparisonResult>> CompareAsync(
         ComparisonRequest request,
         CancellationToken cancellationToken = default);
 }

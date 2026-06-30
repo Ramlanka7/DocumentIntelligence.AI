@@ -10,7 +10,7 @@ namespace AI.DocumentIntelligence.Application.Common.Behaviors;
 /// </summary>
 /// <typeparam name="TRequest">The request type.</typeparam>
 /// <typeparam name="TResponse">The response type.</typeparam>
-public sealed class LoggingBehavior<TRequest, TResponse>(
+public sealed partial class LoggingBehavior<TRequest, TResponse>(
     ILogger<LoggingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
@@ -22,23 +22,28 @@ public sealed class LoggingBehavior<TRequest, TResponse>(
         CancellationToken cancellationToken)
     {
         string requestName = typeof(TRequest).Name;
-        logger.LogInformation("Handling {RequestName}", requestName);
+        LogHandling(logger, requestName);
 
         TResponse response = await next();
 
         if (response is Result { IsFailure: true } failed)
         {
-            logger.LogWarning(
-                "{RequestName} failed with {ErrorCode}: {ErrorDescription}",
-                requestName,
-                failed.Error.Code,
-                failed.Error.Description);
+            LogFailure(logger, requestName, failed.Error.Code, failed.Error.Description);
         }
         else
         {
-            logger.LogInformation("Handled {RequestName}", requestName);
+            LogHandled(logger, requestName);
         }
 
         return response;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handling {RequestName}")]
+    private static partial void LogHandling(ILogger logger, string requestName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{RequestName} failed with {ErrorCode}: {ErrorDescription}")]
+    private static partial void LogFailure(ILogger logger, string requestName, string errorCode, string errorDescription);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handled {RequestName}")]
+    private static partial void LogHandled(ILogger logger, string requestName);
 }

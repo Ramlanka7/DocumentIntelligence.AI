@@ -12,7 +12,7 @@ public interface IEmbeddingService
     /// <param name="input">The text to embed.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The embedding vector, or a failure <see cref="Result"/>.</returns>
-    Task<Result<IReadOnlyList<float>>> GenerateEmbeddingAsync(
+    public Task<Result<IReadOnlyList<float>>> GenerateEmbeddingAsync(
         string input,
         CancellationToken cancellationToken = default);
 
@@ -20,7 +20,7 @@ public interface IEmbeddingService
     /// <param name="inputs">The texts to embed.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>One vector per input, in the same order, or a failure <see cref="Result"/>.</returns>
-    Task<Result<IReadOnlyList<IReadOnlyList<float>>>> GenerateEmbeddingsAsync(
+    public Task<Result<IReadOnlyList<IReadOnlyList<float>>>> GenerateEmbeddingsAsync(
         IReadOnlyList<string> inputs,
         CancellationToken cancellationToken = default);
 }

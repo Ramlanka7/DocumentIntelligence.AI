@@ -7,5 +7,5 @@ namespace AI.DocumentIntelligence.Domain.Common;
 public interface IDomainEvent
 {
     /// <summary>The instant the event occurred.</summary>
-    DateTime OccurredOnUtc { get; }
+    public DateTime OccurredOnUtc { get; }
 }

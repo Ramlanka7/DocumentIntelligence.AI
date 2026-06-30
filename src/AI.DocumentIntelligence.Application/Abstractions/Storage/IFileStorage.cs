@@ -14,7 +14,7 @@ public interface IFileStorage
     /// <param name="contentType">The MIME content type.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The storage key, or a failure <see cref="Result"/>.</returns>
-    Task<Result<string>> SaveAsync(
+    public Task<Result<string>> SaveAsync(
         Stream content,
         string fileName,
         string contentType,
@@ -24,7 +24,7 @@ public interface IFileStorage
     /// <param name="storageKey">The key returned by <see cref="SaveAsync"/>.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A readable stream, or a failure <see cref="Result"/>.</returns>
-    Task<Result<Stream>> GetAsync(
+    public Task<Result<Stream>> GetAsync(
         string storageKey,
         CancellationToken cancellationToken = default);
 
@@ -32,7 +32,7 @@ public interface IFileStorage
     /// <param name="storageKey">The key returned by <see cref="SaveAsync"/>.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A success or failure <see cref="Result"/>.</returns>
-    Task<Result> DeleteAsync(
+    public Task<Result> DeleteAsync(
         string storageKey,
         CancellationToken cancellationToken = default);
 }

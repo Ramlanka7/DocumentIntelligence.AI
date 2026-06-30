@@ -13,7 +13,7 @@ public interface IAnalysisService
     /// <param name="request">The analysis request.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The structured analysis result with citations, or a failure <see cref="Result"/>.</returns>
-    Task<Result<AnalysisResult>> AnalyzeAsync(
+    public Task<Result<AnalysisResult>> AnalyzeAsync(
         AnalysisRequest request,
         CancellationToken cancellationToken = default);
 }

@@ -32,7 +32,7 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        services.AddAutoMapper(applicationAssembly);
+        services.AddAutoMapper(cfg => cfg.AddMaps(applicationAssembly));
 
         return services;
     }

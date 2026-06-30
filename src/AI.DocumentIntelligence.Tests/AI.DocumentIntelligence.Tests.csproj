@@ -5,6 +5,7 @@
     <AssemblyName>AI.DocumentIntelligence.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <NoWarn>CA1707</NoWarn>
   </PropertyGroup>
 
   <!-- Tests may reference every layer so any unit/integration suite can be added later. -->

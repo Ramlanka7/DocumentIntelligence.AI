@@ -13,7 +13,7 @@ public interface IDocumentProcessor
     /// <summary>Whether this processor can handle the given file name/content type.</summary>
     /// <param name="fileName">The original file name (used for extension matching).</param>
     /// <param name="contentType">The MIME content type.</param>
-    bool CanProcess(string fileName, string contentType);
+    public bool CanProcess(string fileName, string contentType);
 
     /// <summary>Extracts text, structure and metadata from the document stream.</summary>
     /// <param name="content">The document content stream.</param>
@@ -21,7 +21,7 @@ public interface IDocumentProcessor
     /// <param name="contentType">The MIME content type.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The extraction result, or a failure <see cref="Result"/> if processing fails.</returns>
-    Task<Result<DocumentExtractionResult>> ProcessAsync(
+    public Task<Result<DocumentExtractionResult>> ProcessAsync(
         Stream content,
         string fileName,
         string contentType,

@@ -90,6 +90,9 @@ public static class DomainErrors
 
         public static readonly Error EmptyMessage =
             Error.Validation("Chat.EmptyMessage", "A chat message cannot be empty.");
+
+        public static readonly Error NoDocuments =
+            Error.Validation("Chat.NoDocuments", "A chat session requires at least one document.");
     }
 
     public static class Session

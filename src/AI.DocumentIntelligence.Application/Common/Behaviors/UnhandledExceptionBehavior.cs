@@ -11,7 +11,7 @@ namespace AI.DocumentIntelligence.Application.Common.Behaviors;
 /// </summary>
 /// <typeparam name="TRequest">The request type.</typeparam>
 /// <typeparam name="TResponse">The response type, constrained to <see cref="Result"/>.</typeparam>
-public sealed class UnhandledExceptionBehavior<TRequest, TResponse>(
+public sealed partial class UnhandledExceptionBehavior<TRequest, TResponse>(
     ILogger<UnhandledExceptionBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
@@ -29,8 +29,7 @@ public sealed class UnhandledExceptionBehavior<TRequest, TResponse>(
         }
         catch (Exception exception)
         {
-            string requestName = typeof(TRequest).Name;
-            logger.LogError(exception, "Unhandled exception while processing {RequestName}", requestName);
+            LogUnhandledException(logger, exception, typeof(TRequest).Name);
 
             var error = Error.Failure(
                 "General.Unhandled",
@@ -39,4 +38,7 @@ public sealed class UnhandledExceptionBehavior<TRequest, TResponse>(
             return ResultFactory.Failure<TResponse>(error);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception while processing {RequestName}")]
+    private static partial void LogUnhandledException(ILogger logger, Exception exception, string requestName);
 }

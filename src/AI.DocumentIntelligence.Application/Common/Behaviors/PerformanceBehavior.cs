@@ -10,7 +10,7 @@ namespace AI.DocumentIntelligence.Application.Common.Behaviors;
 /// </summary>
 /// <typeparam name="TRequest">The request type.</typeparam>
 /// <typeparam name="TResponse">The response type.</typeparam>
-public sealed class PerformanceBehavior<TRequest, TResponse>(
+public sealed partial class PerformanceBehavior<TRequest, TResponse>(
     ILogger<PerformanceBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
@@ -31,12 +31,12 @@ public sealed class PerformanceBehavior<TRequest, TResponse>(
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
         if (elapsed.TotalMilliseconds > LongRunningThresholdMilliseconds)
         {
-            logger.LogWarning(
-                "Long-running request {RequestName} took {ElapsedMilliseconds} ms",
-                typeof(TRequest).Name,
-                (long)elapsed.TotalMilliseconds);
+            LogLongRunning(logger, typeof(TRequest).Name, (long)elapsed.TotalMilliseconds);
         }
 
         return response;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Long-running request {RequestName} took {ElapsedMilliseconds} ms")]
+    private static partial void LogLongRunning(ILogger logger, string requestName, long elapsedMilliseconds);
 }

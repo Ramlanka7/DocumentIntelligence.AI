@@ -11,13 +11,13 @@ namespace AI.DocumentIntelligence.Application.Abstractions.AI;
 public interface IAIProvider
 {
     /// <summary>A stable provider identifier (e.g. "AzureOpenAI") used for selection and telemetry.</summary>
-    string Name { get; }
+    public string Name { get; }
 
     /// <summary>Generates a chat completion for the supplied prompt.</summary>
     /// <param name="request">The provider-agnostic completion request.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The completion and its token usage, or a failure <see cref="Result"/>.</returns>
-    Task<Result<AiCompletionResult>> CompleteAsync(
+    public Task<Result<AiCompletionResult>> CompleteAsync(
         AiCompletionRequest request,
         CancellationToken cancellationToken = default);
 }
