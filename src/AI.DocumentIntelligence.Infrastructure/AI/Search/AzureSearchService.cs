@@ -310,7 +310,12 @@ internal sealed partial class AzureSearchService : ISearchService
                 {
                     IsFilterable = true,
                 },
-                new VectorSearchField(FieldEmbedding, _options.VectorDimensions, "hnsw-profile"),
+                new SearchField(FieldEmbedding, SearchFieldDataType.Collection(SearchFieldDataType.Single))
+                {
+                    IsSearchable = true,
+                    VectorSearchDimensions = _options.VectorDimensions,
+                    VectorSearchProfileName = "hnsw-profile",
+                },
             },
             VectorSearch = new VectorSearch
             {
