@@ -79,7 +79,13 @@ public static class DependencyInjection
         services.AddSingleton<IAIProvider>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
-            return sp.GetRequiredKeyedService<IAIProvider>(opts.ProviderName);
+            var providerName = string.IsNullOrWhiteSpace(opts.ProviderName)
+                ? AzureOpenAiProvider.ProviderName
+                : opts.ProviderName;
+
+            return sp.GetKeyedService<IAIProvider>(providerName)
+                   ?? throw new InvalidOperationException(
+                       $"Unknown AI provider '{providerName}'. Supported values: {AzureOpenAiProvider.ProviderName}, {OpenAiProvider.ProviderName}, {AnthropicProvider.ProviderName}, {OllamaProvider.ProviderName}.");
         });
 
         // ---- AI services (T07) ----
