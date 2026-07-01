@@ -1,3 +1,5 @@
+using AI.DocumentIntelligence.Application;
+using AI.DocumentIntelligence.Infrastructure;
 using Asp.Versioning;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
+
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
 
 builder.Services
     .AddApiVersioning(options =>

@@ -20,7 +20,7 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 | T01 | Domain layer                  | T00               | dotnet-backend-engineer      | Done        |
 | T02 | Persistence (EF Core+pgvector)| T00, T01          | dotnet-backend-engineer      | Not started |
 | T03 | Application core (CQRS)       | T01, T02          | dotnet-backend-engineer      | Done        |
-| T04 | Document processing layer     | T03               | rag-ai-engineer              | Not started |
+| T04 | Document processing layer     | T03               | rag-ai-engineer              | Done        |
 | T05 | RAG pipeline                  | T03, T04          | rag-ai-engineer              | Not started |
 | T06 | Auth & security               | T02, T03          | dotnet-backend-engineer      | Not started |
 | T07 | AI service layer              | T03, T05          | rag-ai-engineer              | Not started |
