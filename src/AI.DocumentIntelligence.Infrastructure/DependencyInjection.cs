@@ -1,9 +1,12 @@
+using AI.DocumentIntelligence.Application.Abstractions;
 using AI.DocumentIntelligence.Application.Abstractions.AI;
 using AI.DocumentIntelligence.Application.Abstractions.Documents;
+using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Application.Abstractions.Search;
 using AI.DocumentIntelligence.Infrastructure.AI.Embedding;
 using AI.DocumentIntelligence.Infrastructure.AI.Options;
 using AI.DocumentIntelligence.Infrastructure.AI.Search;
+using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Infrastructure.Documents;
 using AI.DocumentIntelligence.Infrastructure.Documents.Chunking;
 using AI.DocumentIntelligence.Infrastructure.Documents.Processors;
@@ -21,6 +24,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // ---- Auth (T06) ----
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<UploadOptions>(configuration.GetSection(UploadOptions.SectionName));
+
+        services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<IFileUploadValidator, FileUploadValidator>();
+        services.AddScoped<IAuditService, AuditService>();
+
         // ---- Document processors (T04) ----
         services.AddTransient<IDocumentProcessor, PdfDocumentProcessor>();
         services.AddTransient<IDocumentProcessor, WordDocumentProcessor>();

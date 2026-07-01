@@ -103,4 +103,28 @@ public static class DomainErrors
         public static readonly Error InvalidStateTransition =
             Error.Conflict("Session.InvalidStateTransition", "The session cannot transition to the requested state.");
     }
+
+    public static class Upload
+    {
+        public static readonly Error TooManyDocuments =
+            Error.Validation("Upload.TooManyDocuments", "A maximum of 4 documents may be uploaded at once.");
+
+        public static readonly Error CombinedPageLimitExceeded =
+            Error.Validation("Upload.CombinedPageLimitExceeded", "The combined page count of all uploaded documents must not exceed 500.");
+
+        public static readonly Error FileSizeExceeded =
+            Error.Validation("Upload.FileSizeExceeded", "One or more files exceed the maximum allowed size.");
+
+        public static readonly Error CombinedSizeExceeded =
+            Error.Validation("Upload.CombinedSizeExceeded", "The combined size of all uploaded files exceeds the allowed limit.");
+
+        public static readonly Error UnsupportedFileType =
+            Error.Validation("Upload.UnsupportedFileType", "One or more files have an unsupported or unrecognised file type.");
+    }
+
+    public static class Token
+    {
+        public static readonly Error Invalid =
+            Error.Unauthorized("Token.Invalid", "The token is invalid or expired.");
+    }
 }
