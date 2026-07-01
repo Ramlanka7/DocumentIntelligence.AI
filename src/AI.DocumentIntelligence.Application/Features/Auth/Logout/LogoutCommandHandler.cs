@@ -33,13 +33,14 @@ internal sealed class LogoutCommandHandler(
 
         user.RevokeRefreshToken();
         userRepository.Update(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await auditService.LogAsync(
             action: "User.LoggedOut",
             entityType: "User",
             entityId: user.Id,
             ct: cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

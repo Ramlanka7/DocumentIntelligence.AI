@@ -51,7 +51,6 @@ public sealed class AuthController(ISender sender) : ControllerBase
     /// <summary>Revokes the current user's refresh token, ending refresh-based sessions.</summary>
     [HttpPost("logout")]
     [Authorize]
-    [EnableRateLimiting("PerUser")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
@@ -63,7 +62,6 @@ public sealed class AuthController(ISender sender) : ControllerBase
     /// <summary>Creates a new platform user. Restricted to Admin role.</summary>
     [HttpPost("register")]
     [Authorize(Policy = "AdminOnly")]
-    [EnableRateLimiting("PerUser")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
