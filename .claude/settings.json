@@ -1,24 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)",
-      "Bash(dotnet format:*)",
-      "Bash(dotnet restore:*)",
-      "Bash(dotnet ef:*)",
-      "Bash(npm ci:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run build:*)",
-      "Bash(npm test:*)",
-      "Bash(npm run lint:*)",
-      "Bash(npx ng:*)",
-      "Bash(docker compose:*)",
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git log:*)",
-      "Bash(git branch:*)",
+      "Bash(*)",
       "Read(//Users/ram/Desktop/DocumentIntelligcenPlatform/**)"
     ],
     "deny": []

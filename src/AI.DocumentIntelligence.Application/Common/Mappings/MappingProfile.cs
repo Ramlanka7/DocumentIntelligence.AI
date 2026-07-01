@@ -17,22 +17,41 @@ public sealed class MappingProfile : Profile
     {
         const string mappingMethodName = nameof(IMapFrom<object>.Mapping);
 
-        List<Type> mapFromTypes = assembly.GetExportedTypes()
-            .Where(type => type is { IsAbstract: false, IsInterface: false })
-            .Where(type => Array.Exists(
-                type.GetInterfaces(),
-                @interface => @interface.IsGenericType
-                    && @interface.GetGenericTypeDefinition() == typeof(IMapFrom<>)))
+        var implementingTypes = assembly.GetExportedTypes()
+            .Where(t => t is { IsAbstract: false, IsInterface: false }
+                && Array.Exists(
+                    t.GetInterfaces(),
+                    i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapFrom<>)))
             .ToList();
 
-        foreach (Type type in mapFromTypes)
+        foreach (Type type in implementingTypes)
         {
-            object? instance = Activator.CreateInstance(type);
+            foreach (Type mapFromInterface in type.GetInterfaces()
+                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapFrom<>)))
+            {
+                Type sourceType = mapFromInterface.GetGenericArguments()[0];
 
-            MethodInfo? methodInfo = type.GetMethod(mappingMethodName)
-                ?? type.GetInterface(typeof(IMapFrom<>).Name)?.GetMethod(mappingMethodName);
+                // Only instantiate when the type declares a custom Mapping override.
+                // For the default case (just IMapFrom<T> with no override) we replicate the
+                // default interface method directly — avoiding the need for a parameterless
+                // constructor, which primary-constructor records do not have.
+                MethodInfo? declared = type.GetMethod(
+                    mappingMethodName,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly,
+                    binder: null,
+                    types: [typeof(Profile)],
+                    modifiers: null);
 
-            methodInfo?.Invoke(instance, [this]);
+                if (declared is not null)
+                {
+                    object? instance = Activator.CreateInstance(type);
+                    declared.Invoke(instance, [this]);
+                }
+                else
+                {
+                    CreateMap(sourceType, type);
+                }
+            }
         }
     }
 }

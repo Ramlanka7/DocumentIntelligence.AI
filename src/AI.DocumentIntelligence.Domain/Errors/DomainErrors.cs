@@ -49,6 +49,9 @@ public static class DomainErrors
 
     public static class Citation
     {
+        public static readonly Error InvalidDocumentId =
+            Error.Validation("Citation.InvalidDocumentId", "A citation must reference a valid document identifier.");
+
         public static readonly Error MissingDocumentName =
             Error.Validation("Citation.MissingDocumentName", "A citation must reference a document name.");
 
