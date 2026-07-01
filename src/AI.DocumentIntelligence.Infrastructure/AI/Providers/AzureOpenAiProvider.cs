@@ -64,9 +64,16 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
             var response = await _client.CompleteChatAsync(
                 messages, completionOptions, cancellationToken);
 
-            var text = response.Value.Content[0].Text;
-            var usage = response.Value.Usage;
+            if (response.Value.Content.Count == 0)
+            {
+                return Result.Failure<AiCompletionResult>(
+                    Error.Failure(
+                        "AzureOpenAI.EmptyResponse",
+                        "Azure OpenAI returned an empty chat completion response."));
+            }
 
+            var text = string.Concat(response.Value.Content.Select(c => c.Text));
+            var usage = response.Value.Usage;
             var promptTokens = usage.InputTokenCount;
             var completionTokens = usage.OutputTokenCount;
             var estimatedCost = CalculateCost(promptTokens, completionTokens);
