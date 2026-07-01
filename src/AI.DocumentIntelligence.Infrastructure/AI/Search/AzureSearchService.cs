@@ -394,8 +394,8 @@ internal sealed partial class AzureSearchService : ISearchService
             options.Filter = $"({ids})";
         }
 
-        // Semantic re-ranking is applied on top of hybrid retrieval.
-        if (!string.IsNullOrWhiteSpace(_options.SemanticConfigurationName))
+        // Semantic re-ranking requires a textual query — only apply it for hybrid searches.
+        if (request.UseHybrid && !string.IsNullOrWhiteSpace(_options.SemanticConfigurationName))
         {
             options.QueryType = SearchQueryType.Semantic;
             options.SemanticSearch = new SemanticSearchOptions
