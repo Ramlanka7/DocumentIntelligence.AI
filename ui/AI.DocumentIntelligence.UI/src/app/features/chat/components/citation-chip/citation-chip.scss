@@ -1,0 +1,79 @@
+:host {
+  display: inline-block;
+}
+
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: default;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease;
+
+  // High confidence — green
+  &.confidence--high {
+    background-color: rgba(76, 175, 80, 0.12);
+    border-color: rgba(76, 175, 80, 0.3);
+    color: #a5d6a7;
+
+    .citation-chip__confidence {
+      color: #66bb6a;
+    }
+  }
+
+  // Medium confidence — amber
+  &.confidence--medium {
+    background-color: rgba(255, 167, 38, 0.12);
+    border-color: rgba(255, 167, 38, 0.3);
+    color: #ffe082;
+
+    .citation-chip__confidence {
+      color: #ffa726;
+    }
+  }
+
+  // Low confidence — red
+  &.confidence--low {
+    background-color: rgba(239, 83, 80, 0.12);
+    border-color: rgba(239, 83, 80, 0.3);
+    color: #ef9a9a;
+
+    .citation-chip__confidence {
+      color: #ef5350;
+    }
+  }
+}
+
+.citation-chip__icon {
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+.citation-chip__doc {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citation-chip__sep {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.citation-chip__page,
+.citation-chip__ref {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.citation-chip__confidence {
+  font-weight: 700;
+  flex-shrink: 0;
+}

@@ -1,0 +1,61 @@
+<div
+  class="message-list"
+  role="log"
+  aria-live="polite"
+  aria-label="Chat message history"
+  aria-relevant="additions"
+>
+  @for (message of messages(); track trackMessage($index, message)) {
+    <div
+      class="message"
+      [class.message--user]="message.role === 'user'"
+      [class.message--assistant]="message.role === 'assistant'"
+      [class.message--streaming]="message.isStreaming"
+    >
+      <!-- Avatar -->
+      <div class="message__avatar" aria-hidden="true">
+        @if (message.role === 'user') {
+          <mat-icon>person</mat-icon>
+        } @else {
+          <mat-icon>smart_toy</mat-icon>
+        }
+      </div>
+
+      <!-- Bubble -->
+      <div class="message__body">
+        <div class="message__role" aria-hidden="true">
+          {{ message.role === 'user' ? 'You' : 'AI Assistant' }}
+        </div>
+
+        @if (message.isStreaming && !message.content) {
+          <!-- Typing indicator -->
+          <div class="message__bubble" aria-label="AI is typing">
+            <div class="typing-dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        } @else {
+          <div class="message__bubble">
+            <p class="message__content">{{ message.content }}</p>
+          </div>
+        }
+
+        <!-- Citations -->
+        @if (message.citations && message.citations.length > 0) {
+          <div class="message__citations" aria-label="Source citations">
+            @for (citation of message.citations; track trackCitation($index, citation)) {
+              <app-citation-chip [citation]="citation" />
+            }
+          </div>
+        }
+
+        <time class="message__time" [attr.datetime]="message.createdAt">
+          {{ message.createdAt | date: 'shortTime' }}
+        </time>
+      </div>
+    </div>
+  }
+
+  <!-- Scroll anchor -->
+  <div #scrollAnchor class="scroll-anchor" aria-hidden="true"></div>
+</div>
