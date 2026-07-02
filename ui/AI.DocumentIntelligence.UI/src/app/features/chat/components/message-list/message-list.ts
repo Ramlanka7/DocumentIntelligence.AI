@@ -22,10 +22,10 @@ import { CitationChipComponent } from '../citation-chip/citation-chip';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MessageListComponent {
-  readonly messages = input.required<ChatMessage[]>();
+  readonly messages = input<ChatMessage[]>([]);
   readonly streamingMessageId = input<string | null>(null);
 
-  @ViewChild('scrollAnchor') private scrollAnchor!: ElementRef<HTMLDivElement>;
+  @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
 
   constructor() {
     effect(() => {
