@@ -27,7 +27,7 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 | T08 | API layer                     | T03, T06, T07     | dotnet-backend-engineer      | Done        |
 | T09 | Frontend foundation           | T00               | angular-frontend-engineer    | In progress — build/tests unverified (branch `task/T09-frontend-foundation`, no Node/Docker in this env) |
 | T10 | Analysis feature              | T08, T09          | angular-frontend-engineer    | Not started |
-| T11 | Comparison feature            | T08, T09          | angular-frontend-engineer    | Not started |
+| T11 | Comparison feature            | T08, T09          | angular-frontend-engineer    | Done — branch `task/T11-comparison-feature` |
 | T12 | Chat feature                  | T08, T09          | angular-frontend-engineer    | Not started |
 | T13 | Admin dashboard               | T08, T09          | angular-frontend-engineer    | Not started |
 | T14 | Export features               | T08, T10, T11     | dotnet-backend-engineer      | Not started |

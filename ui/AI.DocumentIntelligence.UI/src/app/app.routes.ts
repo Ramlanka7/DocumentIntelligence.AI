@@ -32,7 +32,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: ALL_ROLES,
     loadComponent: () =>
-      import('./features/placeholder/comparison-placeholder').then((m) => m.ComparisonPlaceholder),
+      import('./features/comparison/comparison').then((m) => m.ComparisonComponent),
     title: 'Comparison',
   },
   {

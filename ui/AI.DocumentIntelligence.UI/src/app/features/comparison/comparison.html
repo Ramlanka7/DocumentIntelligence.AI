@@ -1,0 +1,97 @@
+<div class="comparison-page">
+  <header class="comparison-header">
+    <div class="comparison-header__icon" aria-hidden="true">
+      <mat-icon>compare_arrows</mat-icon>
+    </div>
+    <div class="comparison-header__text">
+      <h1 class="comparison-header__title">Document Comparison</h1>
+      <p class="comparison-header__subtitle">
+        Upload 2&ndash;4 documents and select a comparison type to identify key differences
+        using AI analysis with source citations.
+      </p>
+    </div>
+  </header>
+
+  <!-- Loading state -->
+  @if (service.loading()) {
+    <div class="loading-overlay" role="status" aria-live="polite" aria-label="Running AI comparison">
+      <mat-progress-bar mode="indeterminate" aria-label="Comparison in progress" />
+      <div class="loading-message">
+        <mat-icon aria-hidden="true">smart_toy</mat-icon>
+        <p>AI is analysing your documents&hellip;</p>
+      </div>
+    </div>
+  }
+
+  <!-- Error banner -->
+  @if (service.error()) {
+    <div class="error-banner" role="alert" aria-live="assertive">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ service.error() }}</span>
+      <button
+        mat-icon-button
+        aria-label="Dismiss error"
+        class="error-banner__close"
+        (click)="dismissError()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Results -->
+  @if (service.result(); as result) {
+    <app-results-panel [result]="result" (newComparison)="reset()" />
+  } @else if (!service.loading()) {
+    <!-- Setup form -->
+    <div class="comparison-setup">
+
+      <section class="setup-section" aria-labelledby="upload-heading">
+        <h2 id="upload-heading" class="setup-section__title">
+          <span class="setup-step" aria-hidden="true">1</span>
+          Upload Documents
+        </h2>
+        <app-document-upload
+          [files]="files()"
+          (filesChange)="onFilesChange($event)"
+          (validationError)="service.setError($event)"
+        />
+      </section>
+
+      <section class="setup-section" aria-labelledby="type-heading">
+        <h2 id="type-heading" class="setup-section__title">
+          <span class="setup-step" aria-hidden="true">2</span>
+          Choose Comparison Type
+        </h2>
+        <app-comparison-type-selector
+          [selected]="selectedType()"
+          (selectedChange)="onTypeChange($event)"
+        />
+      </section>
+
+      <div class="setup-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          class="compare-btn"
+          [disabled]="!canCompare()"
+          (click)="startComparison()"
+          aria-label="Start document comparison"
+        >
+          <mat-icon>compare_arrows</mat-icon>
+          Compare Documents
+        </button>
+        <p class="setup-hint" aria-live="polite">
+          @if (files().length === 0) {
+            Upload at least 2 documents to enable comparison
+          } @else if (files().length < 2) {
+            Add {{ 2 - files().length }} more document to enable comparison
+          } @else {
+            {{ files().length }} document{{ files().length > 1 ? 's' : '' }} ready &mdash; click Compare to start
+          }
+        </p>
+      </div>
+
+    </div>
+  }
+</div>
