@@ -31,14 +31,14 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="new-session-form__field">
-          <mat-label>Documents (comma-separated names)</mat-label>
+          <mat-label>Document IDs (comma-separated)</mat-label>
           <input
             matInput
             [value]="newSessionDocs()"
             (input)="onDocsInput($event)"
-            placeholder="Vendor A.pdf, Vendor B.pdf"
+            placeholder="doc-001, doc-002"
           />
-          <mat-hint>Enter document names to use as context</mat-hint>
+          <mat-hint>Enter uploaded document IDs to use as context</mat-hint>
         </mat-form-field>
 
         <div class="new-session-form__actions">
