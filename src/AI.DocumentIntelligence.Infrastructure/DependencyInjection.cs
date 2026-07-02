@@ -1,6 +1,7 @@
 using AI.DocumentIntelligence.Application.Abstractions;
 using AI.DocumentIntelligence.Application.Abstractions.AI;
 using AI.DocumentIntelligence.Application.Abstractions.Documents;
+using AI.DocumentIntelligence.Application.Abstractions.Export;
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Application.Abstractions.Search;
 using AI.DocumentIntelligence.Application.Abstractions.Storage;
@@ -13,6 +14,8 @@ using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Infrastructure.Documents;
 using AI.DocumentIntelligence.Infrastructure.Documents.Chunking;
 using AI.DocumentIntelligence.Infrastructure.Documents.Processors;
+using AI.DocumentIntelligence.Infrastructure.Export;
+using AI.DocumentIntelligence.Infrastructure.Export.Formatters;
 using AI.DocumentIntelligence.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -95,6 +98,14 @@ public static class DependencyInjection
         services.AddScoped<IAnalysisService, AnalysisService>();
         services.AddScoped<IComparisonService, ComparisonService>();
         services.AddScoped<IChatService, ChatService>();
+
+        // ---- Export services (T14) ----
+        // Each IExportFormatter handles exactly one format; ExportService resolves the right one.
+        services.AddTransient<IExportFormatter, MarkdownExportFormatter>();
+        services.AddTransient<IExportFormatter, PdfExportFormatter>();
+        services.AddTransient<IExportFormatter, WordExportFormatter>();
+        services.AddTransient<IExportFormatter, ExcelExportFormatter>();
+        services.AddScoped<IExportService, ExportService>();
 
         return services;
     }
