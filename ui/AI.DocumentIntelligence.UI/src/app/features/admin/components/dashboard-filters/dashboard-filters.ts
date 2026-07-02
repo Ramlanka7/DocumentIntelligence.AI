@@ -12,8 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { Subscription, debounceTime } from 'rxjs';
 
 import { DashboardFilters, OperationFilter } from '../../models/admin-dashboard.models';
 
