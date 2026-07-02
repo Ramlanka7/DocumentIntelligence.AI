@@ -4,8 +4,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { AdminApiService } from './admin-api.service';
 import { DEFAULT_FILTERS } from '../models/admin-dashboard.models';
-import { environment } from '../../../../environments/environment';
-
 describe('AdminApiService', () => {
   let service: AdminApiService;
   let httpMock: HttpTestingController;
