@@ -67,6 +67,7 @@ export class ActivityFeedComponent {
       iconColor: TYPE_COLORS[a.type],
       userEmail: a.userEmail,
       description: a.description,
+      timestamp: a.timestamp,
       timeAgo: timeAgo(a.timestamp),
     })),
   );
