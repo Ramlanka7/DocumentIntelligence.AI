@@ -1,0 +1,65 @@
+<form
+  class="dash-filters"
+  [formGroup]="filterForm"
+  role="search"
+  aria-label="Dashboard filters"
+>
+  <!-- Date from -->
+  <mat-form-field appearance="outline" class="dash-filters__field dash-filters__field--date">
+    <mat-label>From</mat-label>
+    <input
+      matInput
+      type="date"
+      formControlName="dateFrom"
+      aria-label="Filter from date"
+    />
+    <mat-icon matSuffix aria-hidden="true">today</mat-icon>
+  </mat-form-field>
+
+  <!-- Date to -->
+  <mat-form-field appearance="outline" class="dash-filters__field dash-filters__field--date">
+    <mat-label>To</mat-label>
+    <input
+      matInput
+      type="date"
+      formControlName="dateTo"
+      aria-label="Filter to date"
+    />
+    <mat-icon matSuffix aria-hidden="true">event</mat-icon>
+  </mat-form-field>
+
+  <!-- Operation type -->
+  <mat-form-field appearance="outline" class="dash-filters__field dash-filters__field--type">
+    <mat-label>Operation type</mat-label>
+    <mat-select formControlName="operationType" aria-label="Filter by operation type">
+      @for (opt of operationTypes; track opt.value) {
+        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <!-- User filter -->
+  <mat-form-field appearance="outline" class="dash-filters__field dash-filters__field--user">
+    <mat-label>User email</mat-label>
+    <input
+      matInput
+      type="text"
+      formControlName="userId"
+      placeholder="Filter by user email"
+      aria-label="Filter by user email"
+    />
+    <mat-icon matSuffix aria-hidden="true">person_search</mat-icon>
+  </mat-form-field>
+
+  <!-- Reset -->
+  <button
+    mat-stroked-button
+    type="button"
+    class="dash-filters__reset"
+    (click)="resetFilters()"
+    aria-label="Reset all filters"
+  >
+    <mat-icon aria-hidden="true">restart_alt</mat-icon>
+    Reset
+  </button>
+</form>

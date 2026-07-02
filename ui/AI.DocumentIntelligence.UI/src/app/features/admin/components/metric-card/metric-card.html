@@ -1,0 +1,22 @@
+<article
+  class="metric-card"
+  [class.metric-card--loading]="loading()"
+  [attr.aria-label]="card().label + ': ' + card().value"
+>
+  <div class="metric-card__icon-wrap" aria-hidden="true">
+    <mat-icon>{{ card().icon }}</mat-icon>
+  </div>
+
+  <div class="metric-card__body">
+    @if (loading()) {
+      <div class="metric-card__skeleton metric-card__skeleton--value"></div>
+      <div class="metric-card__skeleton metric-card__skeleton--label"></div>
+    } @else {
+      <span class="metric-card__value">{{ card().value }}</span>
+      <span class="metric-card__label">{{ card().label }}</span>
+      @if (card().description) {
+        <span class="metric-card__desc">{{ card().description }}</span>
+      }
+    }
+  </div>
+</article>

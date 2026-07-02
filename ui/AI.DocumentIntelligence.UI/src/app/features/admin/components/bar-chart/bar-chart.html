@@ -1,0 +1,68 @@
+<figure class="bar-chart" role="img" [attr.aria-label]="title() + ' bar chart'">
+  @if (title()) {
+    <figcaption class="bar-chart__title">{{ title() }}</figcaption>
+  }
+
+  @if (layout().hasData) {
+    <svg
+      class="bar-chart__svg"
+      [attr.viewBox]="'0 0 ' + svgW + ' ' + svgH"
+      [attr.aria-label]="title()"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <!-- Y-axis gridlines -->
+      @for (line of layout().yLines; track line.y) {
+        <line
+          [attr.x1]="padLeft"
+          [attr.y1]="line.y"
+          [attr.x2]="svgW - 16"
+          [attr.y2]="line.y"
+          class="bar-chart__gridline"
+        />
+        <text
+          [attr.x]="padLeft - 6"
+          [attr.y]="line.y + 4"
+          class="bar-chart__y-label"
+          text-anchor="end"
+        >{{ line.label }}</text>
+      }
+
+      <!-- X-axis baseline -->
+      <line
+        [attr.x1]="padLeft"
+        [attr.y1]="xAxisY()"
+        [attr.x2]="svgW - 16"
+        [attr.y2]="xAxisY()"
+        class="bar-chart__axis"
+      />
+
+      <!-- Bars -->
+      @for (bar of layout().bars; track bar.label) {
+        <rect
+          [attr.x]="bar.x"
+          [attr.y]="bar.y"
+          [attr.width]="bar.width"
+          [attr.height]="bar.height"
+          class="bar-chart__bar"
+          rx="2"
+        >
+          <title>{{ bar.label }}: {{ bar.formattedValue }}</title>
+        </rect>
+
+        <!-- X-axis label (every other bar) -->
+        @if (bar.showLabel) {
+          <text
+            [attr.x]="bar.x + bar.width / 2"
+            [attr.y]="xAxisY() + 16"
+            class="bar-chart__x-label"
+            text-anchor="middle"
+          >{{ bar.label }}</text>
+        }
+      }
+    </svg>
+  } @else {
+    <div class="bar-chart__empty" role="status">
+      <span>No data available</span>
+    </div>
+  }
+</figure>

@@ -10,6 +10,12 @@
         @for (link of navLinks; track link.path) {
           <a mat-button [routerLink]="link.path">{{ link.label }}</a>
         }
+        @if (isAdmin()) {
+          <a mat-button routerLink="/admin" class="shell__admin-link">
+            <mat-icon aria-hidden="true">admin_panel_settings</mat-icon>
+            Admin
+          </a>
+        }
       }
     </nav>
 

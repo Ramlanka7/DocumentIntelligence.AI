@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.dash-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.dash-filters__field {
+  &--date {
+    width: 9rem;
+  }
+
+  &--type {
+    width: 11rem;
+  }
+
+  &--user {
+    flex: 1;
+    min-width: 12rem;
+  }
+}
+
+.dash-filters__reset {
+  align-self: center;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    margin-right: 0.25rem;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+
+@media (max-width: 600px) {
+  .dash-filters__field {
+    &--date,
+    &--type {
+      width: 100%;
+    }
+
+    &--user {
+      width: 100%;
+    }
+  }
+}
