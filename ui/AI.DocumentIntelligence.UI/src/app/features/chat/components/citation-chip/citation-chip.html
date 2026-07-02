@@ -1,8 +1,5 @@
 <span
-  class="citation-chip"
-  [class.confidence--high]="citation().confidenceScore >= 0.9"
-  [class.confidence--medium]="citation().confidenceScore >= 0.7 && citation().confidenceScore < 0.9"
-  [class.confidence--low]="citation().confidenceScore < 0.7"
+  [class]="'citation-chip ' + confidenceClass()"
   [matTooltip]="tooltipText()"
   matTooltipPosition="above"
   role="note"
