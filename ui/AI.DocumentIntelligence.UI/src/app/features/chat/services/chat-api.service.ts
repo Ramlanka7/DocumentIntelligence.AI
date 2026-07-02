@@ -303,7 +303,9 @@ export class ChatApiService {
 
     // Update session message count
     this._activeSession.update((s) =>
-      s ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() } : s,
+      s?.id === sessionId
+        ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() }
+        : s,
     );
     this._sessions.update((list) =>
       list.map((s) =>
