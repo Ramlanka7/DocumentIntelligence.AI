@@ -95,5 +95,5 @@ export class DonutChartComponent {
     });
   });
 
-  protected readonly hasData = computed(() => this.segments().length > 0);
+  protected readonly hasData = computed(() => this.computed().length > 0);
 }
