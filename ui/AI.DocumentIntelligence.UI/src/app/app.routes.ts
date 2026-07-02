@@ -46,7 +46,10 @@ export const routes: Routes = [
     path: 'admin',
     canActivate: [authGuard, roleGuard],
     data: ADMIN_ONLY,
-    loadComponent: () => import('./features/placeholder/admin-placeholder').then((m) => m.AdminPlaceholder),
+    loadComponent: () =>
+      import('./features/admin/admin-dashboard/admin-dashboard').then(
+        (m) => m.AdminDashboardComponent,
+      ),
     title: 'Admin Dashboard',
   },
   {

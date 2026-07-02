@@ -1,0 +1,125 @@
+<div class="admin-page">
+
+  <!-- ── Page header ───────────────────────────────────────────────────────── -->
+  <header class="admin-header">
+    <div class="admin-header__icon" aria-hidden="true">
+      <mat-icon>admin_panel_settings</mat-icon>
+    </div>
+    <div class="admin-header__text">
+      <h1 class="admin-header__title">Admin Dashboard</h1>
+      <p class="admin-header__subtitle">
+        Platform-wide metrics, AI usage analytics, and recent activity.
+      </p>
+    </div>
+    <button
+      mat-icon-button
+      class="admin-header__refresh"
+      (click)="refresh()"
+      [disabled]="service.loading()"
+      aria-label="Refresh dashboard data"
+    >
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </header>
+
+  <!-- ── Loading bar ───────────────────────────────────────────────────────── -->
+  @if (service.loading()) {
+    <mat-progress-bar
+      mode="indeterminate"
+      aria-label="Loading dashboard data"
+      class="admin-page__progress"
+    />
+  }
+
+  <!-- ── Error banner ──────────────────────────────────────────────────────── -->
+  @if (service.error(); as err) {
+    <div class="admin-error" role="alert" aria-live="assertive">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ err }}</span>
+      <button
+        mat-icon-button
+        class="admin-error__close"
+        (click)="dismissError()"
+        aria-label="Dismiss error"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- ── Filters ───────────────────────────────────────────────────────────── -->
+  <section class="admin-section admin-section--filters" aria-label="Dashboard filters">
+    <app-dashboard-filters
+      [currentFilters]="filters()"
+      (filtersChange)="onFiltersChange($event)"
+    />
+  </section>
+
+  <!-- ── KPI metric cards ──────────────────────────────────────────────────── -->
+  <section class="admin-section" aria-labelledby="metrics-heading">
+    <h2 id="metrics-heading" class="admin-section__title">Platform Metrics</h2>
+    <div class="metrics-grid" role="list" aria-label="Key performance indicators">
+      @for (card of metricCards(); track card.label) {
+        <div role="listitem">
+          <app-metric-card [card]="card" [loading]="service.loading()" />
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ── Charts ────────────────────────────────────────────────────────────── -->
+  <section class="admin-section" aria-labelledby="charts-heading">
+    <h2 id="charts-heading" class="admin-section__title">AI Usage Analytics</h2>
+    <div class="charts-grid">
+
+      <!-- Token usage over time -->
+      <div class="chart-card">
+        @if (service.loading()) {
+          <div class="chart-card__skeleton" aria-label="Loading token chart" role="status"></div>
+        } @else {
+          <app-bar-chart
+            [data]="tokenChartData()"
+            title="Token Usage — Last 14 Days"
+          />
+        }
+      </div>
+
+      <!-- Usage breakdown by type -->
+      <div class="chart-card">
+        @if (service.loading()) {
+          <div class="chart-card__skeleton" aria-label="Loading operation breakdown" role="status"></div>
+        } @else {
+          <app-donut-chart
+            [segments]="donutSegments()"
+            title="Operations by Type"
+          />
+        }
+      </div>
+
+      <!-- Cost over time -->
+      <div class="chart-card chart-card--wide">
+        @if (service.loading()) {
+          <div class="chart-card__skeleton" aria-label="Loading cost chart" role="status"></div>
+        } @else {
+          <app-bar-chart
+            [data]="costChartData()"
+            title="AI Cost (USD) — Last 14 Days"
+            [isCost]="true"
+          />
+        }
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Recent activity feed ──────────────────────────────────────────────── -->
+  <section class="admin-section admin-section--activity">
+    <div class="activity-card">
+      <app-activity-feed
+        [activities]="service.metrics()?.recentActivity ?? []"
+        [loading]="service.loading()"
+      />
+    </div>
+  </section>
+
+</div>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,6 +41,9 @@ export class Shell {
     { label: 'Comparison', path: '/compare' },
     { label: 'Chat', path: '/chat' },
   ];
+
+  /** True when the authenticated user has the Admin role. */
+  protected readonly isAdmin = computed(() => this.user()?.role === 'Admin');
 
   protected signOut(): void {
     this.authStore.logout().subscribe(() => {
