@@ -206,11 +206,8 @@ internal sealed class WordExportFormatter : IExportFormatter
         var para = new Paragraph();
         var ppr = new ParagraphProperties();
         ppr.AppendChild(new ParagraphStyleId { Val = "ListParagraph" });
-        ppr.AppendChild(new NumberingProperties(
-            new NumberingLevelReference { Val = 0 },
-            new NumberingId { Val = 1 }));
         para.AppendChild(ppr);
-        para.AppendChild(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+        para.AppendChild(new Run(new Text("• " + text) { Space = SpaceProcessingModeValues.Preserve }));
         body.AppendChild(para);
     }
 
