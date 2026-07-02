@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRouteSnapshot, provideRouter, RouterStateSnapshot } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { guestGuard } from './guest.guard';
 import { AuthStore } from './auth-store';
+
+const mockRoute = {} as ActivatedRouteSnapshot;
+const mockState = {} as RouterStateSnapshot;
 
 function buildToken(claims: Record<string, unknown>): string {
   const header = { alg: 'none', typ: 'JWT' };
@@ -21,7 +24,7 @@ describe('guestGuard', () => {
   });
 
   it('should allow access to guest routes when unauthenticated', () => {
-    const result = TestBed.runInInjectionContext(() => guestGuard());
+    const result = TestBed.runInInjectionContext(() => guestGuard(mockRoute, mockState));
     expect(result).toBe(true);
   });
 
@@ -35,7 +38,7 @@ describe('guestGuard', () => {
     });
     store.applyTokens(token, 'refresh-token', new Date(Date.now() + 3600_000).toISOString());
 
-    const result = TestBed.runInInjectionContext(() => guestGuard());
+    const result = TestBed.runInInjectionContext(() => guestGuard(mockRoute, mockState));
     expect(result).not.toBe(true);
   });
 });

@@ -1,0 +1,19 @@
+<span
+  class="citation-chip"
+  [class.confidence--high]="citation().confidenceScore >= 0.9"
+  [class.confidence--medium]="citation().confidenceScore >= 0.7 && citation().confidenceScore < 0.9"
+  [class.confidence--low]="citation().confidenceScore < 0.7"
+  [matTooltip]="tooltipText()"
+  matTooltipPosition="above"
+  role="note"
+  [attr.aria-label]="tooltipText()"
+>
+  <mat-icon class="citation-chip__icon" aria-hidden="true">description</mat-icon>
+  <span class="citation-chip__doc">{{ citation().documentName }}</span>
+  <span class="citation-chip__sep" aria-hidden="true">&middot;</span>
+  <span class="citation-chip__page">p.{{ citation().pageNumber }}</span>
+  <span class="citation-chip__sep" aria-hidden="true">&middot;</span>
+  <span class="citation-chip__ref">{{ citation().paragraphRef }}</span>
+  <span class="citation-chip__sep" aria-hidden="true">&middot;</span>
+  <span class="citation-chip__confidence">{{ confidenceLabel() }}</span>
+</span>

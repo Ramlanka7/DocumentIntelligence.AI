@@ -1,0 +1,134 @@
+<div class="chat-page">
+  <!-- Mobile sidebar toggle -->
+  <button
+    mat-icon-button
+    class="chat-page__sidebar-toggle"
+    (click)="toggleSidebar()"
+    [attr.aria-label]="sidebarOpen() ? 'Close sidebar' : 'Open sidebar'"
+    aria-controls="chat-sidebar"
+  >
+    <mat-icon>{{ sidebarOpen() ? 'menu_open' : 'menu' }}</mat-icon>
+  </button>
+
+  <!-- Sidebar -->
+  <aside
+    id="chat-sidebar"
+    class="chat-page__sidebar"
+    [class.chat-page__sidebar--open]="sidebarOpen()"
+  >
+    @if (showNewSessionForm()) {
+      <div class="new-session-form" role="form" aria-label="Create new chat session">
+        <h3 class="new-session-form__title">New Chat Session</h3>
+
+        <mat-form-field appearance="outline" class="new-session-form__field">
+          <mat-label>Session title (optional)</mat-label>
+          <input
+            matInput
+            [value]="newSessionTitle()"
+            (input)="onTitleInput($event)"
+            placeholder="e.g. Contract Review Q4"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="new-session-form__field">
+          <mat-label>Documents (comma-separated names)</mat-label>
+          <input
+            matInput
+            [value]="newSessionDocs()"
+            (input)="onDocsInput($event)"
+            placeholder="Vendor A.pdf, Vendor B.pdf"
+          />
+          <mat-hint>Enter document names to use as context</mat-hint>
+        </mat-form-field>
+
+        <div class="new-session-form__actions">
+          <button mat-stroked-button (click)="cancelNewSession()">Cancel</button>
+          <button mat-flat-button color="primary" (click)="createSession()">Create</button>
+        </div>
+      </div>
+    } @else {
+      <app-chat-session-list
+        [sessions]="service.sessions()"
+        [activeSessionId]="service.activeSession()?.id ?? null"
+        [loading]="service.sessionsLoading()"
+        (sessionSelect)="selectSession($event)"
+        (newSession)="openNewSessionForm()"
+        (deleteSession)="deleteSession($event)"
+      />
+    }
+  </aside>
+
+  <!-- Main chat pane -->
+  <main class="chat-page__main" role="main">
+    @if (service.activeSession(); as session) {
+      <!-- Session header -->
+      <header class="chat-page__header">
+        <button
+          mat-icon-button
+          (click)="service.clearActiveSession()"
+          aria-label="Back to session list"
+        >
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="chat-page__header-info">
+          <h2 class="chat-page__session-title">{{ session.title }}</h2>
+          @if (session.documentNames.length > 0) {
+            <div class="chat-page__context-docs">
+              <mat-icon aria-hidden="true">description</mat-icon>
+              <span>{{ session.documentNames.join(', ') }}</span>
+            </div>
+          }
+        </div>
+      </header>
+
+      <!-- Loading bar while fetching messages -->
+      @if (service.loading() && service.messages().length === 0) {
+        <mat-progress-bar mode="indeterminate" aria-label="Loading messages" />
+      }
+
+      <!-- Error banner -->
+      @if (service.error(); as err) {
+        <div class="chat-page__error" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ err }}</span>
+          <button mat-icon-button (click)="dismissError()" aria-label="Dismiss error">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
+      <!-- Message thread -->
+      <div class="chat-page__messages">
+        @if (service.messages().length === 0 && !service.loading()) {
+          <div class="chat-page__empty-thread">
+            <mat-icon aria-hidden="true">chat_bubble_outline</mat-icon>
+            <p>Ask a question about your documents</p>
+          </div>
+          <app-prompt-suggestions (suggestionSelect)="onSuggestionSelect($event)" />
+        } @else {
+          <app-message-list
+            [messages]="service.messages()"
+            [streamingMessageId]="service.streamingMessageId()"
+          />
+        }
+      </div>
+
+      <!-- Input row -->
+      <app-prompt-input
+        [disabled]="service.loading()"
+        (messageSend)="sendMessage($event)"
+      />
+    } @else {
+      <!-- Welcome / no session -->
+      <div class="chat-page__welcome">
+        <mat-icon aria-hidden="true">forum</mat-icon>
+        <h2>AI Document Chat</h2>
+        <p>Select a session from the sidebar, or start a new one to ask questions about your documents.</p>
+        <button mat-flat-button color="primary" (click)="openNewSessionForm()">
+          <mat-icon>add</mat-icon>
+          New Chat Session
+        </button>
+      </div>
+    }
+  </main>
+</div>

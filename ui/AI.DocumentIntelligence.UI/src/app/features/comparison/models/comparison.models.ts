@@ -18,12 +18,8 @@ export interface DocumentInfo {
   size: number;
 }
 
-export interface Citation {
-  documentName: string;
-  pageNumber: number;
-  paragraphRef: string;
-  confidenceScore: number; // 0–1
-}
+export type { Citation } from '../../../core/models/citation.model';
+import type { Citation } from '../../../core/models/citation.model';
 
 export type DiffStatus = 'added' | 'removed' | 'modified';
 

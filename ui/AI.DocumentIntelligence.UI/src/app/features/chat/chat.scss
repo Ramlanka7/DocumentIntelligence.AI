@@ -1,0 +1,221 @@
+:host {
+  display: block;
+  height: calc(100vh - 4rem);
+}
+
+.chat-page {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--mat-sys-background);
+  position: relative;
+}
+
+// ── Mobile toggle ─────────────────────────────────────────────────────────────
+
+.chat-page__sidebar-toggle {
+  display: none;
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 20;
+
+  @media (max-width: 767px) {
+    display: flex;
+  }
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+
+.chat-page__sidebar {
+  width: 18rem;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 767px) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 10;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+
+    &--open {
+      transform: translateX(0);
+    }
+  }
+}
+
+// ── New session form ──────────────────────────────────────────────────────────
+
+.new-session-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.new-session-form__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.new-session-form__field {
+  width: 100%;
+}
+
+.new-session-form__actions {
+  display: flex;
+  gap: 0.625rem;
+  justify-content: flex-end;
+}
+
+// ── Main pane ─────────────────────────────────────────────────────────────────
+
+.chat-page__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// ── Session header ─────────────────────────────────────────────────────────────
+
+.chat-page__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.chat-page__header-info {
+  min-width: 0;
+}
+
+.chat-page__session-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-page__context-docs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: 0.125rem;
+
+  mat-icon {
+    font-size: 0.875rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ── Error banner ───────────────────────────────────────────────────────────────
+
+.chat-page__error {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background-color: rgba(239, 83, 80, 0.12);
+  border-bottom: 1px solid rgba(239, 83, 80, 0.25);
+  color: #ef9a9a;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  span { flex: 1; }
+}
+
+// ── Messages area ──────────────────────────────────────────────────────────────
+
+.chat-page__messages {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-page__empty-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.55;
+  pointer-events: none;
+
+  mat-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  p { margin: 0; font-size: 0.9375rem; }
+}
+
+// ── Welcome state ─────────────────────────────────────────────────────────────
+
+.chat-page__welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+
+  mat-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.35;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface);
+  }
+
+  p {
+    margin: 0;
+    max-width: 28rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

@@ -39,7 +39,7 @@ export const routes: Routes = [
     path: 'chat',
     canActivate: [authGuard, roleGuard],
     data: ALL_ROLES,
-    loadComponent: () => import('./features/placeholder/chat-placeholder').then((m) => m.ChatPlaceholder),
+    loadComponent: () => import('./features/chat/chat').then((m) => m.ChatComponent),
     title: 'Chat',
   },
   {

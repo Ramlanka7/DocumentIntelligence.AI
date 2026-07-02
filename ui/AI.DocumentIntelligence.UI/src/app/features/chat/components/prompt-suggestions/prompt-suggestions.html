@@ -1,0 +1,19 @@
+<div class="prompt-suggestions" role="group" aria-label="Suggested questions">
+  <div class="prompt-suggestions__header">
+    <mat-icon aria-hidden="true">lightbulb</mat-icon>
+    <span>Try asking…</span>
+  </div>
+
+  <div class="prompt-suggestions__chips">
+    @for (suggestion of suggestions; track trackSuggestion($index, suggestion)) {
+      <button
+        mat-stroked-button
+        class="suggestion-chip"
+        (click)="select(suggestion)"
+        [attr.aria-label]="'Ask: ' + suggestion"
+      >
+        {{ suggestion }}
+      </button>
+    }
+  </div>
+</div>
