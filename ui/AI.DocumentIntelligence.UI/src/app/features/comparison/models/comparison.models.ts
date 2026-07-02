@@ -18,8 +18,9 @@ export interface DocumentInfo {
   size: number;
 }
 
-export type { Citation } from '../../../core/models/citation.model';
 import type { Citation } from '../../../core/models/citation.model';
+
+export type { Citation };
 
 export type DiffStatus = 'added' | 'removed' | 'modified';
 
