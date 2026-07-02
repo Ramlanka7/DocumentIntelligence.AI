@@ -30,7 +30,7 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 | T11 | Comparison feature            | T08, T09          | angular-frontend-engineer    | Done — branch `task/T11-comparison-feature` |
 | T12 | Chat feature                  | T08, T09          | angular-frontend-engineer    | Done — branch `task/T12-chat-feature` |
 | T13 | Admin dashboard               | T08, T09          | angular-frontend-engineer    | Done — branch `dev` |
-| T14 | Export features               | T08, T10, T11     | dotnet-backend-engineer      | Not started |
+| T14 | Export features               | T08, T10, T11     | dotnet-backend-engineer      | Done — branch `dev` |
 | T15 | Observability                 | T08               | dotnet-backend-engineer      | Not started |
 | T16 | Testing                       | T08–T14           | test-engineer                | Not started |
 | T17 | DevOps & deployment           | T00, T08, T09     | devops-engineer              | Not started |

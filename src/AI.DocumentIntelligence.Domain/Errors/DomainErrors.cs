@@ -127,4 +127,16 @@ public static class DomainErrors
         public static readonly Error Invalid =
             Error.Unauthorized("Token.Invalid", "The token is invalid or expired.");
     }
+
+    public static class Export
+    {
+        public static readonly Error UnsupportedFormat =
+            Error.Validation("Export.UnsupportedFormat", "The requested export format is not supported.");
+
+        public static readonly Error EmptyResult =
+            Error.Validation("Export.EmptyResult", "Cannot export a null result.");
+
+        public static Error ExportFailed(string detail) =>
+            Error.Failure("Export.Failed", $"Export generation failed: {detail}");
+    }
 }
