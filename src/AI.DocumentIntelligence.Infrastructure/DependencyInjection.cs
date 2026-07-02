@@ -16,6 +16,7 @@ using AI.DocumentIntelligence.Infrastructure.Documents.Chunking;
 using AI.DocumentIntelligence.Infrastructure.Documents.Processors;
 using AI.DocumentIntelligence.Infrastructure.Export;
 using AI.DocumentIntelligence.Infrastructure.Export.Formatters;
+using AI.DocumentIntelligence.Infrastructure.HealthChecks;
 using AI.DocumentIntelligence.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -106,6 +107,16 @@ public static class DependencyInjection
         services.AddTransient<IExportFormatter, WordExportFormatter>();
         services.AddTransient<IExportFormatter, ExcelExportFormatter>();
         services.AddScoped<IExportService, ExportService>();
+
+        // ---- Health checks (T15) ----
+        // Registered here (internal types) so they can use internal option classes.
+        services.AddHealthChecks()
+            .AddCheck<AzureSearchHealthCheck>(
+                "azure-search",
+                tags: ["ready", "search"])
+            .AddCheck<AiProviderHealthCheck>(
+                "ai-provider",
+                tags: ["ready", "ai"]);
 
         return services;
     }
