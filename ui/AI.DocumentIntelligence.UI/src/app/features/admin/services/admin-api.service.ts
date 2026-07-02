@@ -247,6 +247,7 @@ export class AdminApiService {
       },
       error: () => {
         // Backend not yet wired — serve realistic mock data for demonstration.
+        this._error.set('Failed to load admin metrics. Showing demo data.');
         this._metrics.set(buildMockMetrics());
         this._loading.set(false);
       },
