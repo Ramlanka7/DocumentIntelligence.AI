@@ -39,6 +39,7 @@ export interface EnrichedActivity {
   readonly iconColor: string;
   readonly userEmail: string;
   readonly description: string;
+  readonly timestamp: string; // ISO 8601
   readonly timeAgo: string;
 }
 
