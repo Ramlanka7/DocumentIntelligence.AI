@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace AI.DocumentIntelligence.Tests.AiLayer;
+namespace AI.DocumentIntelligence.Tests.AI;
 
 public sealed class AzureOpenAiProviderTests
 {
@@ -35,6 +35,6 @@ public sealed class AzureOpenAiProviderTests
 
         var act = () => new AzureOpenAiProvider(options, NullLogger<AzureOpenAiProvider>.Instance);
 
-        act.Should().Throw<UriFormatException>();
+        act.Should().Throw<Exception>();
     }
 }

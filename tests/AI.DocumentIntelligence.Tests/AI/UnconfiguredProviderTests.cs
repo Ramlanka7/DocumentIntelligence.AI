@@ -2,9 +2,9 @@ using AI.DocumentIntelligence.Application.Contracts.AI;
 using AI.DocumentIntelligence.Infrastructure.AI.Providers;
 using FluentAssertions;
 
-namespace AI.DocumentIntelligence.Tests.AiLayer;
+namespace AI.DocumentIntelligence.Tests.AI;
 
-public sealed class StubProviderTests
+public sealed class UnconfiguredProviderTests
 {
     private static readonly AiCompletionRequest DummyRequest =
         new([new AiMessage(AiRole.User, "hello")]);

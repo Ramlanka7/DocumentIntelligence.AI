@@ -7,6 +7,7 @@ import { Shell } from './shell';
 
 describe('Shell', () => {
   beforeEach(async () => {
+    localStorage.clear(); // prevent auth-store.spec.ts from leaking tokens into this suite
     await TestBed.configureTestingModule({
       imports: [Shell],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],

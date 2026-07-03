@@ -18,6 +18,7 @@ function buildToken(claims: Record<string, unknown>): string {
 
 describe('guestGuard', () => {
   beforeEach(() => {
+    localStorage.clear(); // guard tests must not inherit tokens written by other specs
     TestBed.configureTestingModule({
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     });

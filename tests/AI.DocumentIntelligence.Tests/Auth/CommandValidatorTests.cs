@@ -2,6 +2,7 @@ using AI.DocumentIntelligence.Application.Features.Auth.Login;
 using AI.DocumentIntelligence.Application.Features.Auth.Logout;
 using AI.DocumentIntelligence.Application.Features.Auth.Refresh;
 using AI.DocumentIntelligence.Application.Features.Auth.Register;
+using AI.DocumentIntelligence.Domain.Enums;
 using FluentAssertions;
 using FluentValidation.TestHelper;
 
@@ -62,7 +63,7 @@ public sealed class CommandValidatorTests
     {
         var validator = new RegisterUserCommandValidator();
         var cmd = new RegisterUserCommand("user@example.com", "Secure@123", "John Doe",
-            AI.DocumentIntelligence.Domain.Enums.UserRole.Analyst);
+            UserRole.Analyst);
         var result = validator.TestValidate(cmd);
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -72,7 +73,7 @@ public sealed class CommandValidatorTests
     {
         var validator = new RegisterUserCommandValidator();
         var cmd = new RegisterUserCommand("user@example.com", "Ab1!", "John Doe",
-            AI.DocumentIntelligence.Domain.Enums.UserRole.Analyst);
+            UserRole.Analyst);
         var result = validator.TestValidate(cmd);
         result.ShouldHaveValidationErrorFor(x => x.Password);
     }
@@ -82,7 +83,7 @@ public sealed class CommandValidatorTests
     {
         var validator = new RegisterUserCommandValidator();
         var cmd = new RegisterUserCommand("user@example.com", "NoDigits!", "John Doe",
-            AI.DocumentIntelligence.Domain.Enums.UserRole.Analyst);
+            UserRole.Analyst);
         var result = validator.TestValidate(cmd);
         result.ShouldHaveValidationErrorFor(x => x.Password);
     }
@@ -92,7 +93,7 @@ public sealed class CommandValidatorTests
     {
         var validator = new RegisterUserCommandValidator();
         var cmd = new RegisterUserCommand("user@example.com", "NoSpecial1", "John Doe",
-            AI.DocumentIntelligence.Domain.Enums.UserRole.Analyst);
+            UserRole.Analyst);
         var result = validator.TestValidate(cmd);
         result.ShouldHaveValidationErrorFor(x => x.Password);
     }
@@ -102,7 +103,7 @@ public sealed class CommandValidatorTests
     {
         var validator = new RegisterUserCommandValidator();
         var cmd = new RegisterUserCommand("not-an-email", "Secure@123", "John Doe",
-            AI.DocumentIntelligence.Domain.Enums.UserRole.Analyst);
+            UserRole.Analyst);
         var result = validator.TestValidate(cmd);
         result.ShouldHaveValidationErrorFor(x => x.Email);
     }
