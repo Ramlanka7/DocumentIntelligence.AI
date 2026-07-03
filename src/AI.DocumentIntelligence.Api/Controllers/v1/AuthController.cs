@@ -78,6 +78,6 @@ public sealed class AuthController(ISender sender) : ControllerBase
             return result.ToActionResult(this);
         }
 
-        return CreatedAtAction(nameof(RegisterAsync), new { id = result.Value }, result.Value);
+        return Created($"/api/v1/auth/users/{result.Value}", result.Value);
     }
 }

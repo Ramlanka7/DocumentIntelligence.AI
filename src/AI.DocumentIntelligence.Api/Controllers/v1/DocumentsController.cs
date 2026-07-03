@@ -47,10 +47,7 @@ public sealed class DocumentsController(ISender sender) : ControllerBase
             return result.ToActionResult(this);
         }
 
-        return CreatedAtAction(
-            nameof(GetAsync),
-            new { id = result.Value.DocumentId },
-            result.Value);
+        return Created($"/api/v1/documents/{result.Value.DocumentId}", result.Value);
     }
 
     /// <summary>Returns a summary list of all documents belonging to the current user.</summary>
