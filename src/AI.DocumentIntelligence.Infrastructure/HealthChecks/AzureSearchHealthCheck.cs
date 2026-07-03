@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace AI.DocumentIntelligence.Infrastructure.HealthChecks;
 
 /// <summary>
-/// Verifies that Azure AI Search is reachable and the configured index exists.
+/// Verifies that Azure AI Search is reachable by calling <c>GetServiceStatisticsAsync</c>.
 /// Returns <see cref="HealthStatus.Degraded"/> when credentials are absent (not configured)
 /// and <see cref="HealthStatus.Unhealthy"/> only when the service is configured but unreachable.
 /// </summary>
