@@ -13,7 +13,7 @@ namespace AI.DocumentIntelligence.Tests.Integration.Documents;
 /// Real file processing (extraction + ingestion) is skipped by using stub services.
 /// </summary>
 [Collection("Integration")]
-public sealed class DocumentEndpointTests : IClassFixture<ApiWebApplicationFactory>
+public sealed class DocumentEndpointTests
 {
     private readonly ApiWebApplicationFactory _factory;
 

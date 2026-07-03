@@ -4,7 +4,7 @@ using AI.DocumentIntelligence.Domain.Entities;
 
 namespace AI.DocumentIntelligence.Tests.Integration.Fakes;
 
-/// <summary>Thread-safe in-memory user store for integration tests.</summary>
+/// <summary>Single-threaded in-memory user store; safe only within a serialised test collection.</summary>
 public sealed class InMemoryUserRepository : IUserRepository
 {
     private readonly List<User> _users = [];

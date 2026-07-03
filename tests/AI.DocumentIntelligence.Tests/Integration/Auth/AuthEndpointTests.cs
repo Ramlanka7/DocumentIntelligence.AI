@@ -13,7 +13,7 @@ namespace AI.DocumentIntelligence.Tests.Integration.Auth;
 /// Repositories are in-memory; no real network or database calls are made.
 /// </summary>
 [Collection("Integration")]
-public sealed class AuthEndpointTests : IClassFixture<ApiWebApplicationFactory>
+public sealed class AuthEndpointTests
 {
     private readonly ApiWebApplicationFactory _factory;
 

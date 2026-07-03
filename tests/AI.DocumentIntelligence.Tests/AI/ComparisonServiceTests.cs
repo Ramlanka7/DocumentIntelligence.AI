@@ -11,7 +11,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace AI.DocumentIntelligence.Tests.AiLayer;
+namespace AI.DocumentIntelligence.Tests.AI;
 
 public sealed class ComparisonServiceTests
 {

@@ -10,6 +10,7 @@ namespace AI.DocumentIntelligence.Tests.Integration.Database;
 /// connectivity and extension availability.  These tests prove the container infrastructure
 /// works and will be extended once the full EF Core persistence layer (T02) is in place.
 /// </summary>
+[Collection("Docker")]
 public sealed class DatabaseContainerTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()

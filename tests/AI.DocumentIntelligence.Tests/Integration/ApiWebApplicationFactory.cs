@@ -43,6 +43,8 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
         // Environment variables are part of the WebApplication.CreateBuilder() default pipeline
         // and are therefore present when Program.cs reads the configuration.
         // Note: double-underscore (__) is the .NET environment variable separator for nested config.
+        // IMPORTANT: Mutating process-level environment variables is the only viable approach given the timing constraint.
+        // The [Collection("Integration")] serialises all tests to avoid concurrent factory creation (which would race).
         Environment.SetEnvironmentVariable("Jwt__SecretKey", TestJwtSecretKey);
         Environment.SetEnvironmentVariable("Jwt__Issuer", TestIssuer);
         Environment.SetEnvironmentVariable("Jwt__Audience", TestAudience);

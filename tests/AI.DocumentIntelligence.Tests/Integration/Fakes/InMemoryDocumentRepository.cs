@@ -4,7 +4,7 @@ using AI.DocumentIntelligence.Domain.Entities;
 
 namespace AI.DocumentIntelligence.Tests.Integration.Fakes;
 
-/// <summary>Thread-safe in-memory document store for integration tests.</summary>
+/// <summary>Single-threaded in-memory document store; safe only within a serialised test collection.</summary>
 public sealed class InMemoryDocumentRepository : IDocumentRepository
 {
     private readonly List<Document> _documents = [];
