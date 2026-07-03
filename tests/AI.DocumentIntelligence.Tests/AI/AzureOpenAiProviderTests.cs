@@ -25,7 +25,7 @@ public sealed class AzureOpenAiProviderTests
     }
 
     [Fact]
-    public void Constructor_WithEmptyEndpoint_ShouldThrowException()
+    public void Constructor_WithEmptyEndpoint_ShouldThrowUriFormatException()
     {
         var options = Options.Create(new AzureOpenAIOptions
         {
