@@ -78,6 +78,6 @@ public sealed class AuthController(ISender sender) : ControllerBase
             return result.ToActionResult(this);
         }
 
-        return Created($"/api/v1/admin/users/{result.Value}", result.Value);
+        return CreatedAtAction(nameof(AdminController.GetUserAsync), "Admin", new { id = result.Value, version = RouteData.Values["version"] }, result.Value);
     }
 }
