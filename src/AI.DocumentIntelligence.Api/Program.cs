@@ -197,10 +197,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
-
 // ---- Correlation ID (before Serilog request logging so the ID appears in every log event) ----
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+app.UseHttpsRedirection();
 
 // ---- Serilog request logging (after CorrelationId so it enriches the completion log) ----
 app.UseSerilogRequestLogging(opts =>
