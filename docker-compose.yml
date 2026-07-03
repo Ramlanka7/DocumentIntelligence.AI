@@ -1,6 +1,16 @@
 name: ai-document-intelligence
 
+# ---------------------------------------------------------------------------
+# Local development stack.  All services read config from a .env file
+# (copy .env.example → .env once, then fill in your values).
+#
+# Start everything:   docker compose up -d
+# Run migrations:     docker compose --profile migrate run --rm migrate
+# Tear down:          docker compose down [-v]
+# ---------------------------------------------------------------------------
+
 services:
+  # ---- PostgreSQL + pgvector -----------------------------------------------
   postgres:
     image: pgvector/pgvector:pg17
     restart: unless-stopped
@@ -18,10 +28,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # ---- Azurite (Azure Storage emulator) ------------------------------------
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.33.0
     restart: unless-stopped
-    command: ["azurite", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", "--location", "/data", "--skipApiVersionCheck"]
+    command:
+      - azurite
+      - --blobHost
+      - "0.0.0.0"
+      - --queueHost
+      - "0.0.0.0"
+      - --tableHost
+      - "0.0.0.0"
+      - --location
+      - /data
+      - --skipApiVersionCheck
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
       - "${AZURITE_QUEUE_PORT:-10001}:10001"
@@ -31,11 +52,11 @@ services:
 
   # ---------------------------------------------------------------------------
   # Azure AI Search has no official local container/emulator — it is a managed
-  # Azure cloud service. For local development the Api talks to either a real
+  # Azure cloud service.  For local development the Api talks to either a real
   # Azure AI Search resource (via AzureSearch__* env vars) or an in-process
   # fallback (e.g. pgvector-only search) behind the same IAIProvider/ISearchService
-  # abstraction. This entry is a placeholder so the wiring/port story is explicit
-  # and discoverable; uncomment and point at a real endpoint when available.
+  # abstraction.  This entry is a placeholder so the wiring/port story is
+  # explicit and discoverable; uncomment and point at a real endpoint when needed.
   # ---------------------------------------------------------------------------
   # ai-search-stub:
   #   image: mcr.microsoft.com/azure-search/search-emulator:placeholder
@@ -45,10 +66,12 @@ services:
   #     AzureSearch__ApiKey: ${AzureSearch__ApiKey:-}
   #     AzureSearch__IndexName: ${AzureSearch__IndexName:-documents}
 
+  # ---- API -----------------------------------------------------------------
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     restart: unless-stopped
     depends_on:
       postgres:
@@ -58,14 +81,29 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_HTTP_PORTS: "8080"
+      # Database
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Host=postgres;Port=5432;Database=document_intelligence;Username=postgres;Password=postgres}
+      # Blob storage (Azurite in dev)
       ConnectionStrings__BlobStorage: ${ConnectionStrings__BlobStorage:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      # JWT — MUST be set; never leave as default in any real environment.
+      # Set Jwt__SecretKey in your .env file (see .env.example).
+      Jwt__Issuer: ${Jwt__Issuer:-DocumentIntelligence}
+      Jwt__Audience: ${Jwt__Audience:-DocumentIntelligenceClient}
+      Jwt__SecretKey: ${Jwt__SecretKey:?Jwt__SecretKey is required — set it in .env}
+      Jwt__AccessTokenExpiryMinutes: ${Jwt__AccessTokenExpiryMinutes:-15}
+      Jwt__RefreshTokenExpiryDays: ${Jwt__RefreshTokenExpiryDays:-7}
+      # Azure OpenAI (leave blank locally to use stub/Ollama AI provider)
       AzureOpenAI__Endpoint: ${AzureOpenAI__Endpoint:-}
       AzureOpenAI__ApiKey: ${AzureOpenAI__ApiKey:-}
-      AzureOpenAI__DeploymentName: ${AzureOpenAI__DeploymentName:-}
+      AzureOpenAI__ChatDeployment: ${AzureOpenAI__ChatDeployment:-gpt-4o}
+      AzureOpenAI__EmbeddingDeployment: ${AzureOpenAI__EmbeddingDeployment:-text-embedding-3-small}
+      AzureOpenAI__EmbeddingDimensions: ${AzureOpenAI__EmbeddingDimensions:-1536}
+      # Azure AI Search (leave blank locally; pgvector fallback is used)
       AzureSearch__Endpoint: ${AzureSearch__Endpoint:-}
       AzureSearch__ApiKey: ${AzureSearch__ApiKey:-}
-      AzureSearch__IndexName: ${AzureSearch__IndexName:-documents}
+      AzureSearch__IndexName: ${AzureSearch__IndexName:-document-chunks}
+      # Application Insights (optional)
+      ApplicationInsights__ConnectionString: ${ApplicationInsights__ConnectionString:-}
     ports:
       - "${API_HTTP_PORT:-8080}:8080"
     healthcheck:
@@ -75,15 +113,54 @@ services:
       retries: 5
       start_period: 20s
 
+  # ---- Frontend (nginx) ----------------------------------------------------
   frontend:
     build:
       context: ./ui/AI.DocumentIntelligence.UI
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "${FRONTEND_HTTP_PORT:-4200}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---- EF Core migration runner (profile: migrate) -------------------------
+  # Run with:  docker compose --profile migrate run --rm migrate
+  #
+  # This service uses the migrator build target in Dockerfile (SDK-based) and
+  # runs dotnet ef database update against the postgres service.
+  #
+  # NOTE: Requires T02 (EF Core DbContext + migrations) to be complete.
+  # Until then the command exits 0 with "No migrations were applied."
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Host=postgres;Port=5432;Database=document_intelligence;Username=postgres;Password=postgres}
+      # Jwt__SecretKey is required by Program.cs at startup even for migrations.
+      Jwt__SecretKey: ${Jwt__SecretKey:?Jwt__SecretKey is required — set it in .env}
+      Jwt__Issuer: ${Jwt__Issuer:-DocumentIntelligence}
+      Jwt__Audience: ${Jwt__Audience:-DocumentIntelligenceClient}
+      AzureOpenAI__Endpoint: ${AzureOpenAI__Endpoint:-https://placeholder.openai.azure.com/}
+      AzureOpenAI__ApiKey: ${AzureOpenAI__ApiKey:-placeholder}
+      AzureSearch__Endpoint: ${AzureSearch__Endpoint:-https://placeholder.search.windows.net}
+      AzureSearch__ApiKey: ${AzureSearch__ApiKey:-placeholder}
+      ASPNETCORE_ENVIRONMENT: Development
+    profiles:
+      - migrate
 
 volumes:
   postgres-data:

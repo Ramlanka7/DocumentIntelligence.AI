@@ -1,0 +1,228 @@
+# ---------------------------------------------------------------------------
+# CD — Continuous Delivery
+#
+# Triggers on push to main (releases) or manual workflow_dispatch.
+# Stages (run in order):
+#   1. build-push   — builds + pushes API + frontend images to GHCR
+#   2. migrate      — runs EF Core migrations against the target database
+#   3. deploy       — placeholder: update Container Apps / AKS / compose host
+#
+# Required repository secrets (Settings → Secrets → Actions):
+#   DB_CONNECTION_STRING        — full Npgsql connection string for target DB
+#   JWT_SECRET_KEY              — 256-bit signing key (≥32 chars)
+#   AZURE_OPENAI_ENDPOINT       — https://<resource>.openai.azure.com/
+#   AZURE_OPENAI_API_KEY        — Azure OpenAI API key
+#   AZURE_SEARCH_ENDPOINT       — https://<resource>.search.windows.net
+#   AZURE_SEARCH_API_KEY        — Azure AI Search admin key
+#   AZURE_STORAGE_CONNECTION    — production blob connection string
+#   APPLICATIONINSIGHTS_CONNECTION_STRING — (optional)
+#
+# The GITHUB_TOKEN secret is automatically available for GHCR access.
+# ---------------------------------------------------------------------------
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target deployment environment"
+        required: true
+        default: production
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  packages: write   # required to push to ghcr.io
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  REGISTRY: ghcr.io
+  # IMAGE_PREFIX is lowercased because OCI references must be lowercase.
+  IMAGE_PREFIX: ${{ github.repository_owner }}/ai-document-intelligence
+
+jobs:
+  # =========================================================================
+  # 1. Build and push Docker images to GitHub Container Registry
+  # =========================================================================
+  build-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    outputs:
+      api-tags: ${{ steps.meta-api.outputs.tags }}
+      api-digest: ${{ steps.push-api.outputs.digest }}
+      frontend-tags: ${{ steps.meta-frontend.outputs.tags }}
+      frontend-digest: ${{ steps.push-frontend.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- API image -------------------------------------------------------
+      - name: Generate API image metadata
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push API image
+        id: push-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- Frontend image --------------------------------------------------
+      - name: Generate frontend image metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        id: push-frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ui/AI.DocumentIntelligence.UI
+          file: ./ui/AI.DocumentIntelligence.UI/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image digest summary
+        run: |
+          echo "API image:      ${{ steps.meta-api.outputs.tags }}"
+          echo "API digest:     ${{ steps.push-api.outputs.digest }}"
+          echo "Frontend image: ${{ steps.meta-frontend.outputs.tags }}"
+          echo "Frontend digest:${{ steps.push-frontend.outputs.digest }}"
+
+  # =========================================================================
+  # 2. EF Core database migration
+  #
+  # Runs dotnet ef database update against the target database before any
+  # new application pods are started, ensuring the schema is always at least
+  # as new as the code being deployed.
+  #
+  # Pre-condition: T02 (EF Core DbContext + migrations) must be complete.
+  # Until migrations exist the step logs a clear message and exits cleanly.
+  # =========================================================================
+  migrate:
+    name: EF Core Migration
+    runs-on: ubuntu-latest
+    needs: build-push
+    environment: ${{ inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Install EF Core CLI tool
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Run EF Core migrations
+        env:
+          # Secrets injected via the environment protection rules; never logged.
+          ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION_STRING }}
+          Jwt__SecretKey: ${{ secrets.JWT_SECRET_KEY }}
+          Jwt__Issuer: "DocumentIntelligence"
+          Jwt__Audience: "DocumentIntelligenceClient"
+          AzureOpenAI__Endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AzureOpenAI__ApiKey: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AzureSearch__Endpoint: ${{ secrets.AZURE_SEARCH_ENDPOINT }}
+          AzureSearch__ApiKey: ${{ secrets.AZURE_SEARCH_API_KEY }}
+          AzureStorage__ConnectionString: ${{ secrets.AZURE_STORAGE_CONNECTION }}
+          ASPNETCORE_ENVIRONMENT: Production
+        run: |
+          MIGRATION_DIR="src/AI.DocumentIntelligence.Persistence/Migrations"
+          if [ -d "$MIGRATION_DIR" ] && [ "$(ls -A "$MIGRATION_DIR" 2>/dev/null)" ]; then
+            echo "Migrations directory found — running dotnet ef database update..."
+            dotnet ef database update \
+              --project src/AI.DocumentIntelligence.Persistence \
+              --startup-project src/AI.DocumentIntelligence.Api \
+              --verbose
+            echo "Migration complete."
+          else
+            echo "No migrations directory found at $MIGRATION_DIR."
+            echo "This is expected until T02 (EF Core DbContext) is complete."
+            echo "Skipping migration step."
+          fi
+
+  # =========================================================================
+  # 3. Deploy (placeholder)
+  #
+  # Replace this job's steps with your actual deployment target:
+  #   - Azure Container Apps:  az containerapp update ...
+  #   - AKS:                   kubectl set image deployment/api api=<image>
+  #   - Docker Compose (VM):   ssh + docker compose pull + docker compose up -d
+  #
+  # The 'environment' protection rule (GitHub Settings → Environments) can
+  # add required reviewers and deployment branch rules for production.
+  # =========================================================================
+  deploy:
+    name: Deploy (${{ inputs.environment || 'production' }})
+    runs-on: ubuntu-latest
+    needs: migrate
+    environment: ${{ inputs.environment || 'production' }}
+
+    steps:
+      - name: Deployment placeholder
+        run: |
+          echo "=================================================================="
+          echo "DEPLOY — ${{ inputs.environment || 'production' }}"
+          echo "=================================================================="
+          echo ""
+          echo "Images deployed:"
+          echo "  API      : ${{ needs.build-push.outputs.api-tags }}"
+          echo "  Frontend : ${{ needs.build-push.outputs.frontend-tags }}"
+          echo ""
+          echo "Digests (immutable references for rollback):"
+          echo "  API      : ${{ needs.build-push.outputs.api-digest }}"
+          echo "  Frontend : ${{ needs.build-push.outputs.frontend-digest }}"
+          echo ""
+          echo "TODO: replace this step with your deployment target."
+          echo "  Azure Container Apps example:"
+          echo "    az containerapp update \\"
+          echo "      --name api \\"
+          echo "      --resource-group <rg> \\"
+          echo "      --image ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api@${{ needs.build-push.outputs.api-digest }}"
+          echo ""
+          echo "  AKS example:"
+          echo "    kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api@${{ needs.build-push.outputs.api-digest }}"
+          echo "=================================================================="

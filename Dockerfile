@@ -27,6 +27,40 @@ RUN dotnet publish src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.c
     --output /app/publish
 
 ## ---------------------------------------------------------------------------
+## Migrator stage: EF Core design-time image used by the `migrate` compose
+## service and the CD pipeline migration step.
+##
+## Requires T02 (EF Core DbContext + migrations) to be complete before this
+## target produces meaningful results.  Until then, `dotnet ef database update`
+## will report "No migrations were applied." and exit 0.
+##
+## Usage (docker compose):
+##   docker compose --profile migrate run --rm migrate
+##
+## Usage (CI/CD direct):
+##   docker run --rm \
+##     -e ConnectionStrings__DefaultConnection=... \
+##     -e Jwt__SecretKey=... \
+##     ghcr.io/<owner>/ai-document-intelligence-api:sha-<sha> \
+##     -- migrate   # see ENTRYPOINT note below
+## ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS migrator
+WORKDIR /src
+
+# Reuse the already-restored + built source from the build stage.
+COPY --from=build /src ./
+COPY --from=build /root/.nuget /root/.nuget
+
+RUN dotnet tool install --global dotnet-ef
+
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+ENTRYPOINT ["dotnet", "ef", "database", "update", \
+    "--project", "src/AI.DocumentIntelligence.Persistence", \
+    "--startup-project", "src/AI.DocumentIntelligence.Api", \
+    "--no-build"]
+
+## ---------------------------------------------------------------------------
 ## Runtime stage: minimal ASP.NET runtime image only.
 ## ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

@@ -2,8 +2,8 @@ using AI.DocumentIntelligence.Infrastructure.Documents.Processors;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using FluentAssertions;
-using P = DocumentFormat.OpenXml.Presentation;
 using D = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace AI.DocumentIntelligence.Tests.Documents;
 

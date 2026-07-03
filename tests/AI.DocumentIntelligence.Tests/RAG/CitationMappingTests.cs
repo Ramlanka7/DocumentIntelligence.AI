@@ -1,7 +1,7 @@
 using AI.DocumentIntelligence.Application.Contracts.Search;
 using FluentAssertions;
-using DomainCitation = AI.DocumentIntelligence.Domain.ValueObjects.Citation;
 using AppCitation = AI.DocumentIntelligence.Application.Contracts.Citation;
+using DomainCitation = AI.DocumentIntelligence.Domain.ValueObjects.Citation;
 
 namespace AI.DocumentIntelligence.Tests.RAG;
 

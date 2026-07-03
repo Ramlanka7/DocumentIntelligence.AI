@@ -286,11 +286,11 @@ internal sealed class WordExportFormatter : IExportFormatter
     {
         var stylesPart = mainPart.AddNewPart<StyleDefinitionsPart>();
         stylesPart.Styles = new Styles(
-            BuildStyle("Normal",        isBold: false, fontSize: "22", baseStyle: null),
-            BuildStyle("Title",         isBold: true,  fontSize: "40", baseStyle: "Normal"),
-            BuildStyle("Subtitle",      isBold: false, fontSize: "26", baseStyle: "Normal"),
-            BuildStyle("Heading1",      isBold: true,  fontSize: "32", baseStyle: "Normal"),
-            BuildStyle("Heading2",      isBold: true,  fontSize: "28", baseStyle: "Normal"),
+            BuildStyle("Normal", isBold: false, fontSize: "22", baseStyle: null),
+            BuildStyle("Title", isBold: true, fontSize: "40", baseStyle: "Normal"),
+            BuildStyle("Subtitle", isBold: false, fontSize: "26", baseStyle: "Normal"),
+            BuildStyle("Heading1", isBold: true, fontSize: "32", baseStyle: "Normal"),
+            BuildStyle("Heading2", isBold: true, fontSize: "28", baseStyle: "Normal"),
             BuildStyle("ListParagraph", isBold: false, fontSize: "22", baseStyle: "Normal"));
         stylesPart.Styles.Save();
     }

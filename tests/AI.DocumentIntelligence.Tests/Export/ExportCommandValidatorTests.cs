@@ -1,10 +1,10 @@
 using AI.DocumentIntelligence.Application;
 using AI.DocumentIntelligence.Application.Contracts;
 using AI.DocumentIntelligence.Application.Contracts.Analysis;
+using AI.DocumentIntelligence.Application.Contracts.Comparison;
 using AI.DocumentIntelligence.Application.Contracts.Export;
 using AI.DocumentIntelligence.Application.Features.Export.ExportAnalysis;
 using AI.DocumentIntelligence.Application.Features.Export.ExportComparison;
-using AI.DocumentIntelligence.Application.Contracts.Comparison;
 using AI.DocumentIntelligence.Domain.Common;
 using FluentAssertions;
 using MediatR;
