@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using AI.DocumentIntelligence.Application.Abstractions.AI;
 using AI.DocumentIntelligence.Application.Contracts.AI;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Infrastructure.AI.Options;
+using AI.DocumentIntelligence.Infrastructure.Telemetry;
 using Azure;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.Logging;
@@ -45,6 +47,14 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
         AiCompletionRequest request,
         CancellationToken cancellationToken = default)
     {
+        using var activity = InfrastructureActivitySource.Source.StartActivity(
+            "ai.completion", ActivityKind.Client);
+        activity?.SetTag("ai.provider", ProviderName);
+        activity?.SetTag("ai.model", _options.ChatDeployment);
+        activity?.SetTag("ai.message_count", request.Messages.Count);
+
+        var sw = Stopwatch.StartNew();
+
         try
         {
             LogCompletionRequest(_logger, _options.ChatDeployment, request.Messages.Count);
@@ -66,6 +76,9 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
 
             if (response.Value.Content.Count == 0)
             {
+                sw.Stop();
+                RecordCompletionMetrics(sw.Elapsed.TotalMilliseconds, 0, 0, 0m, "empty_response");
+                activity?.SetStatus(ActivityStatusCode.Error, "Azure OpenAI returned an empty response.");
                 return Result.Failure<AiCompletionResult>(
                     Error.Failure(
                         "AzureOpenAI.EmptyResponse",
@@ -78,6 +91,15 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
             var completionTokens = usage.OutputTokenCount;
             var estimatedCost = CalculateCost(promptTokens, completionTokens);
 
+            sw.Stop();
+
+            activity?.SetTag("ai.tokens.prompt", promptTokens);
+            activity?.SetTag("ai.tokens.completion", completionTokens);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            RecordCompletionMetrics(
+                sw.Elapsed.TotalMilliseconds, promptTokens, completionTokens, estimatedCost, "success");
+
             var tokenUsage = new TokenUsage(promptTokens, completionTokens, estimatedCost);
 
             LogCompletionReceived(_logger, promptTokens, completionTokens, _options.ChatDeployment);
@@ -86,6 +108,11 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
         }
         catch (RequestFailedException ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.http_status", ex.Status);
+            RecordCompletionMetrics(sw.Elapsed.TotalMilliseconds, 0, 0, 0m, "request_failed");
+
             LogRequestFailed(_logger, ex.Status, ex.ErrorCode ?? "unknown", ex);
             return Result.Failure<AiCompletionResult>(
                 Error.Failure(
@@ -94,11 +121,43 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            RecordCompletionMetrics(sw.Elapsed.TotalMilliseconds, 0, 0, 0m, "unexpected_error");
+
             LogUnexpectedError(_logger, ex);
             return Result.Failure<AiCompletionResult>(
                 Error.Failure(
                     "AzureOpenAI.UnexpectedError",
                     $"Unexpected error during chat completion: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Records the standard AI completion metrics for every outcome (success or failure).
+    /// Token and cost instruments are only recorded when tokens were actually consumed.
+    /// </summary>
+    private void RecordCompletionMetrics(
+        double durationMs,
+        int promptTokens,
+        int completionTokens,
+        decimal cost,
+        string status)
+    {
+        var tags = new TagList
+        {
+            { "ai.provider", ProviderName },
+            { "ai.model", _options.ChatDeployment },
+            { "status", status },
+        };
+
+        InfrastructureActivitySource.AiCompletionRequests.Add(1, tags);
+        InfrastructureActivitySource.AiCompletionDurationMs.Record(durationMs, tags);
+
+        if (promptTokens + completionTokens > 0)
+        {
+            InfrastructureActivitySource.AiTokensConsumed.Add(promptTokens + completionTokens, tags);
+            InfrastructureActivitySource.AiCompletionCostUsd.Record((double)cost, tags);
         }
     }
 

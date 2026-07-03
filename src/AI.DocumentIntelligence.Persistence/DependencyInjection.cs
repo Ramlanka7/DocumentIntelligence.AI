@@ -1,4 +1,5 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
+using AI.DocumentIntelligence.Persistence.HealthChecks;
 using AI.DocumentIntelligence.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +18,13 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
+
+        // ---- Health checks (T15) ----
+        // Registered here (internal type) so it can use Npgsql directly.
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>(
+                "database",
+                tags: ["ready", "db"]);
 
         return services;
     }

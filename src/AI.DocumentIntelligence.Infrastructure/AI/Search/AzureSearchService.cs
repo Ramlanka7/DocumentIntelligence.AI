@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using AI.DocumentIntelligence.Application.Abstractions.AI;
 using AI.DocumentIntelligence.Application.Abstractions.Search;
 using AI.DocumentIntelligence.Application.Contracts.Search;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Infrastructure.AI.Options;
+using AI.DocumentIntelligence.Infrastructure.Telemetry;
 using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
@@ -63,9 +65,19 @@ internal sealed partial class AzureSearchService : ISearchService
             return Result.Success();
         }
 
+        using var activity = InfrastructureActivitySource.Source.StartActivity(
+            "search.index", ActivityKind.Client);
+        activity?.SetTag("search.index", _options.IndexName);
+        activity?.SetTag("search.chunk_count", chunks.Count);
+
+        var sw = Stopwatch.StartNew();
+
         var ensureResult = await EnsureIndexExistsAsync(cancellationToken);
         if (ensureResult.IsFailure)
         {
+            sw.Stop();
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "index", 0, "index_ensure_failed");
+            activity?.SetStatus(ActivityStatusCode.Error, "Failed to ensure index exists.");
             return ensureResult;
         }
 
@@ -79,6 +91,10 @@ internal sealed partial class AzureSearchService : ISearchService
             var failed = response.Value.Results.Where(r => !r.Succeeded).ToList();
             if (failed.Count > 0)
             {
+                sw.Stop();
+                RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "index", chunks.Count, "partial_failure");
+                activity?.SetStatus(ActivityStatusCode.Error, $"Failed to index {failed.Count} chunk(s).");
+
                 var keys = string.Join(", ", failed.Select(r => r.Key));
                 LogPartialIndexFailure(_logger, failed.Count, keys);
                 return Result.Failure(
@@ -86,17 +102,30 @@ internal sealed partial class AzureSearchService : ISearchService
                         $"Failed to index {failed.Count} chunk(s). Keys: {keys}"));
             }
 
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "index", chunks.Count, "success");
+
             LogIndexed(_logger, chunks.Count, _options.IndexName);
             return Result.Success();
         }
         catch (RequestFailedException ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.http_status", ex.Status);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "index", 0, "request_failed");
+
             LogIndexRequestFailed(_logger, ex.Status, ex);
             return Result.Failure(
                 Error.Failure("Search.IndexFailed", $"Azure Search indexing failed ({ex.Status}): {ex.Message}"));
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "index", 0, "unexpected_error");
+
             LogIndexUnexpectedError(_logger, ex);
             return Result.Failure(
                 Error.Failure("Search.IndexUnexpectedError", $"Unexpected indexing error: {ex.Message}"));
@@ -108,9 +137,20 @@ internal sealed partial class AzureSearchService : ISearchService
         SearchRequest request,
         CancellationToken cancellationToken = default)
     {
+        using var activity = InfrastructureActivitySource.Source.StartActivity(
+            "search.query", ActivityKind.Client);
+        activity?.SetTag("search.index", _options.IndexName);
+        activity?.SetTag("search.hybrid", request.UseHybrid);
+        activity?.SetTag("search.top_k", request.TopK);
+
+        var sw = Stopwatch.StartNew();
+
         var ensureResult = await EnsureIndexExistsAsync(cancellationToken);
         if (ensureResult.IsFailure)
         {
+            sw.Stop();
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "query", 0, "index_ensure_failed");
+            activity?.SetStatus(ActivityStatusCode.Error, "Failed to ensure index exists.");
             return Result.Failure<IReadOnlyList<SearchHit>>(ensureResult.Error);
         }
 
@@ -118,6 +158,9 @@ internal sealed partial class AzureSearchService : ISearchService
         var embeddingResult = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
         if (embeddingResult.IsFailure)
         {
+            sw.Stop();
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "query", 0, "embedding_failed");
+            activity?.SetStatus(ActivityStatusCode.Error, "Failed to generate query embedding.");
             return Result.Failure<IReadOnlyList<SearchHit>>(embeddingResult.Error);
         }
 
@@ -138,18 +181,32 @@ internal sealed partial class AzureSearchService : ISearchService
                 hits.Add(hit);
             }
 
+            sw.Stop();
+            activity?.SetTag("search.result_count", hits.Count);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "query", hits.Count, "success");
+
             LogSearchResult(_logger, request.Query, hits.Count, request.UseHybrid);
 
             return Result.Success<IReadOnlyList<SearchHit>>(hits);
         }
         catch (RequestFailedException ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("error.http_status", ex.Status);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "query", 0, "request_failed");
+
             LogSearchRequestFailed(_logger, ex.Status, ex);
             return Result.Failure<IReadOnlyList<SearchHit>>(
                 Error.Failure("Search.QueryFailed", $"Azure Search query failed ({ex.Status}): {ex.Message}"));
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            RecordSearchMetrics(sw.Elapsed.TotalMilliseconds, "query", 0, "unexpected_error");
+
             LogSearchUnexpectedError(_logger, ex);
             return Result.Failure<IReadOnlyList<SearchHit>>(
                 Error.Failure("Search.QueryUnexpectedError", $"Unexpected search error: {ex.Message}"));
@@ -235,6 +292,23 @@ internal sealed partial class AzureSearchService : ISearchService
     }
 
     // ---- Private helpers ----
+
+    /// <summary>
+    /// Records the standard search/index metrics for every outcome.
+    /// The <paramref name="operation"/> tag differentiates search queries from index operations.
+    /// </summary>
+    private void RecordSearchMetrics(double durationMs, string operation, int resultCount, string status)
+    {
+        var tags = new TagList
+        {
+            { "search.index", _options.IndexName },
+            { "search.operation", operation },
+            { "status", status },
+        };
+
+        InfrastructureActivitySource.SearchRequests.Add(1, tags);
+        InfrastructureActivitySource.SearchDurationMs.Record(durationMs, tags);
+    }
 
     /// <summary>
     /// Ensures the Azure AI Search index exists with the correct schema, creating or updating

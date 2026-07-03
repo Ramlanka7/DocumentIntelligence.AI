@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using AI.DocumentIntelligence.Api.Infrastructure;
 using AI.DocumentIntelligence.Api.Middleware;
+using AI.DocumentIntelligence.Api.Observability;
 using AI.DocumentIntelligence.Application;
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Infrastructure;
@@ -10,18 +11,23 @@ using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ---- Structured logging (Serilog) ----
+// Must be first so that startup errors are captured with the bootstrap logger.
+builder.AddSerilogLogging();
 
 // ---- Core MVC / OpenAPI ----
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
-builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 
 // ---- Swagger with JWT auth ----
@@ -74,6 +80,16 @@ builder.WebHost.ConfigureKestrel(opts =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddPersistence();
+
+// ---- OpenTelemetry (traces + metrics) ----
+// Exporters (OTLP, Azure Monitor) activate only when their config is present.
+builder.Services.AddOpenTelemetryObservability(builder.Configuration);
+
+// ---- Health checks ----
+// Individual checks are registered by AddInfrastructure() and AddPersistence().
+// AddHealthChecks() here ensures the health check service is registered in case
+// the order of DI extension calls changes in future.
+builder.Services.AddHealthChecks();
 
 // ---- HTTP context accessor (required by CurrentUserService) ----
 builder.Services.AddHttpContextAccessor();
@@ -181,7 +197,26 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// ---- Correlation ID (before Serilog request logging so the ID appears in every log event) ----
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 app.UseHttpsRedirection();
+
+// ---- Serilog request logging (after CorrelationId so it enriches the completion log) ----
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+
+        if (httpContext.Items.TryGetValue(CorrelationIdMiddleware.CorrelationIdKey, out var correlationId))
+        {
+            diagnosticContext.Set("CorrelationId", correlationId);
+        }
+    };
+});
 
 // ---- CORS (before auth) ----
 app.UseCors();
@@ -195,7 +230,29 @@ app.UseRateLimiter();
 app.UseMiddleware<AuditMiddleware>();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+
+// ---- Health check endpoints ----
+// /health/live  — liveness: just verifies the process is up (no external checks).
+// /health/ready — readiness: verifies DB, Search, and AI provider connectivity.
+// /health       — full report: combines all registered checks.
+var healthCheckOptions = new HealthCheckOptions
+{
+    ResponseWriter = ObservabilityExtensions.WriteHealthCheckResponseAsync,
+};
+
+app.MapHealthChecks("/health", healthCheckOptions).AllowAnonymous();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false, // No checks: just confirms the process responds.
+    ResponseWriter = ObservabilityExtensions.WriteHealthCheckResponseAsync,
+}).AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = ObservabilityExtensions.WriteHealthCheckResponseAsync,
+}).AllowAnonymous();
 
 app.Run();
 
