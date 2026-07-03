@@ -103,7 +103,7 @@ internal sealed partial class ExportService : IExportService
         catch (Exception ex)
         {
             LogExportFailed(_logger, format, ex);
-            return Result.Failure<ExportDocumentResult>(DomainErrors.Export.ExportFailed(ex.Message));
+            return Result.Failure<ExportDocumentResult>(DomainErrors.Export.ExportFailed("An unexpected error occurred during export generation."));
         }
     }
 
