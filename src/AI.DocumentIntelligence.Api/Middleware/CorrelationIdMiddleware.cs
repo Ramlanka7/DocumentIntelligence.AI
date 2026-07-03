@@ -25,8 +25,11 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
     /// <inheritdoc cref="RequestDelegate"/>
     public async Task InvokeAsync(HttpContext context)
     {
-        var correlationId = context.Request.Headers[CorrelationIdHeader].FirstOrDefault()
-            ?? Guid.NewGuid().ToString("D");
+        var inboundCorrelationId = context.Request.Headers[CorrelationIdHeader].FirstOrDefault();
+
+        var correlationId = Guid.TryParse(inboundCorrelationId, out var parsed)
+            ? parsed.ToString("D")
+            : Guid.NewGuid().ToString("D");
 
         // Surface on the response so callers can correlate client-side.
         context.Items[CorrelationIdKey] = correlationId;
