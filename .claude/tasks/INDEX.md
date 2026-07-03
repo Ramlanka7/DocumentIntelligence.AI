@@ -32,7 +32,7 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 | T13 | Admin dashboard               | T08, T09          | angular-frontend-engineer    | Done — branch `dev` |
 | T14 | Export features               | T08, T10, T11     | dotnet-backend-engineer      | Done — branch `dev` |
 | T15 | Observability                 | T08               | dotnet-backend-engineer      | Done — branch `task/T15-observability` |
-| T16 | Testing                       | T08–T14           | test-engineer                | Done — branch `dev` |
+| T16 | Testing                       | T08–T14           | test-engineer                | Done — branch `task/T16-testing` |
 | T17 | DevOps & deployment           | T00, T08, T09     | devops-engineer              | Not started |
 
 ## Milestones
