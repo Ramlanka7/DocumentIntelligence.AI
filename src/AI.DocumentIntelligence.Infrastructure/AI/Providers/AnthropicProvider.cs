@@ -56,10 +56,18 @@ internal sealed partial class AnthropicProvider : IAIProvider, IDisposable
 
         var sw = Stopwatch.StartNew();
 
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            sw.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, "Anthropic is not configured (missing ApiKey).");
+            RecordCompletionMetrics(sw.Elapsed.TotalMilliseconds, 0, 0, 0m, "not_configured");
+            return Result.Failure<AiCompletionResult>(
+                DomainError.Failure("Anthropic.NotConfigured", "Anthropic is not configured (missing ApiKey)."));
+        }
+
         try
         {
             LogCompletionRequest(_logger, _options.Model, request.Messages.Count);
-
             // Anthropic treats system prompts separately from the conversation messages.
             var systemMessages = request.Messages
                 .Where(m => m.Role == AiRole.System)
