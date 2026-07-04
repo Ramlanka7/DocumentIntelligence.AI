@@ -36,8 +36,8 @@ internal sealed partial class AzureSearchService : ISearchService
     private readonly AzureSearchOptions _options;
     private readonly IEmbeddingService _embeddingService;
     private readonly ILogger<AzureSearchService> _logger;
-    private readonly SearchIndexClient _indexClient;
-    private readonly SearchClient _searchClient;
+    private readonly SearchIndexClient? _indexClient;
+    private readonly SearchClient? _searchClient;
 
     private volatile bool _indexEnsured;
 
@@ -50,9 +50,12 @@ internal sealed partial class AzureSearchService : ISearchService
         _embeddingService = embeddingService;
         _logger = logger;
 
-        var credential = new AzureKeyCredential(_options.ApiKey);
-        _indexClient = new SearchIndexClient(new Uri(_options.Endpoint), credential);
-        _searchClient = new SearchClient(new Uri(_options.Endpoint), _options.IndexName, credential);
+        if (!string.IsNullOrWhiteSpace(_options.Endpoint) && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            var credential = new AzureKeyCredential(_options.ApiKey);
+            _indexClient = new SearchIndexClient(new Uri(_options.Endpoint), credential);
+            _searchClient = new SearchClient(new Uri(_options.Endpoint), _options.IndexName, credential);
+        }
     }
 
     /// <inheritdoc />
@@ -86,7 +89,7 @@ internal sealed partial class AzureSearchService : ISearchService
             var documents = chunks.Select(ToSearchDocument).ToList();
 
             var batch = IndexDocumentsBatch.MergeOrUpload(documents);
-            var response = await _searchClient.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
+            var response = await _searchClient!.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
 
             var failed = response.Value.Results.Where(r => !r.Succeeded).ToList();
             if (failed.Count > 0)
@@ -169,7 +172,7 @@ internal sealed partial class AzureSearchService : ISearchService
         try
         {
             var searchOptions = BuildSearchOptions(request, queryVector);
-            var response = await _searchClient.SearchAsync<SearchDocument>(
+            var response = await _searchClient!.SearchAsync<SearchDocument>(
                 request.UseHybrid ? request.Query : "*",
                 searchOptions,
                 cancellationToken);
@@ -239,7 +242,7 @@ internal sealed partial class AzureSearchService : ISearchService
                     Size = _options.MaxDeleteBatchSize,
                 };
 
-                var response = await _searchClient.SearchAsync<SearchDocument>("*", searchOptions, cancellationToken);
+                var response = await _searchClient!.SearchAsync<SearchDocument>("*", searchOptions, cancellationToken);
 
                 var ids = new List<string>();
                 await foreach (var result in response.Value.GetResultsAsync())
@@ -316,6 +319,13 @@ internal sealed partial class AzureSearchService : ISearchService
     /// </summary>
     private async Task<Result> EnsureIndexExistsAsync(CancellationToken cancellationToken)
     {
+        if (_indexClient is null || _searchClient is null)
+        {
+            return Result.Failure(
+                Error.Failure("Search.NotConfigured",
+                    "Azure AI Search is not configured. Set AzureSearch:Endpoint and AzureSearch:ApiKey."));
+        }
+
         if (_indexEnsured)
         {
             return Result.Success();
@@ -324,7 +334,7 @@ internal sealed partial class AzureSearchService : ISearchService
         try
         {
             var definition = BuildIndexDefinition();
-            await _indexClient.CreateOrUpdateIndexAsync(definition, cancellationToken: cancellationToken);
+            await _indexClient!.CreateOrUpdateIndexAsync(definition, cancellationToken: cancellationToken);
             _indexEnsured = true;
             LogIndexEnsured(_logger, _options.IndexName);
             return Result.Success();

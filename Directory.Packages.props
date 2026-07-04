@@ -57,6 +57,9 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.9" />
     <PackageVersion Include="Npgsql" Version="9.0.5" />
 
+    <!-- Anthropic Claude -->
+    <PackageVersion Include="Anthropic.SDK" Version="5.10.0" />
+
     <!-- Azure AI -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0" />
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />

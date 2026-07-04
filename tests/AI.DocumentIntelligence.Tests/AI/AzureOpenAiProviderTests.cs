@@ -25,7 +25,7 @@ public sealed class AzureOpenAiProviderTests
     }
 
     [Fact]
-    public void Constructor_WithEmptyEndpoint_ShouldThrowUriFormatException()
+    public void Constructor_WithEmptyEndpoint_ShouldNotThrow()
     {
         var options = Options.Create(new AzureOpenAIOptions
         {
@@ -35,6 +35,24 @@ public sealed class AzureOpenAiProviderTests
 
         var act = () => new AzureOpenAiProvider(options, NullLogger<AzureOpenAiProvider>.Instance);
 
-        act.Should().Throw<Exception>();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenNotConfigured_ShouldReturnFailure()
+    {
+        var options = Options.Create(new AzureOpenAIOptions
+        {
+            Endpoint = string.Empty,
+            ApiKey = "key"
+        });
+
+        var provider = new AzureOpenAiProvider(options, NullLogger<AzureOpenAiProvider>.Instance);
+        var request = new AiCompletionRequest([new AiMessage(AiRole.User, "hello")]);
+
+        var result = await provider.CompleteAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("AzureOpenAI.NotConfigured");
     }
 }

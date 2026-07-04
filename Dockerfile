@@ -70,16 +70,14 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup --system --gid 1000 appgroup \
-    && adduser --system --uid 1000 --ingroup appgroup --shell /bin/false appuser
-
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_RUNNING_IN_CONTAINER=true \
     ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=build /app/publish ./
 
-USER appuser
+# The .NET 8+ runtime image ships a built-in non-root 'app' user (UID 1654).
+USER app
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
