@@ -4,6 +4,11 @@ using FluentAssertions;
 
 namespace AI.DocumentIntelligence.Tests.AI;
 
+/// <summary>
+/// Verifies that providers still registered as stubs (OpenAI, Ollama) return
+/// a well-typed failure rather than throwing. AnthropicProvider is fully
+/// implemented and tested separately via integration tests.
+/// </summary>
 public sealed class UnconfiguredProviderTests
 {
     private static readonly AiCompletionRequest DummyRequest =
@@ -21,20 +26,6 @@ public sealed class UnconfiguredProviderTests
         var result = await new OpenAiProvider().CompleteAsync(DummyRequest);
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("OpenAI.NotConfigured");
-    }
-
-    [Fact]
-    public void AnthropicProvider_Name_ShouldBeAnthropic()
-    {
-        new AnthropicProvider().Name.Should().Be("Anthropic");
-    }
-
-    [Fact]
-    public async Task AnthropicProvider_CompleteAsync_ShouldReturnFailure()
-    {
-        var result = await new AnthropicProvider().CompleteAsync(DummyRequest);
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Anthropic.NotConfigured");
     }
 
     [Fact]

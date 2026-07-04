@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Anthropic.SDK" />
     <PackageReference Include="Azure.AI.OpenAI" />
     <PackageReference Include="Azure.Search.Documents" />
     <PackageReference Include="Azure.Storage.Blobs" />

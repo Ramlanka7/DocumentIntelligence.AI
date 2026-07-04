@@ -81,7 +81,32 @@ public static class DependencyInjection
         services.Configure<AzureOpenAIOptions>(
             configuration.GetSection(AzureOpenAIOptions.SectionName));
 
-        services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+        // ---- Anthropic options ----
+        services.Configure<AnthropicOptions>(
+            configuration.GetSection(AnthropicOptions.SectionName));
+
+        // ---- Embedding service selection ----
+        // Azure OpenAI is used when both Endpoint and ApiKey are present (default for Foundry).
+        // Direct OpenAI is the fallback — used when running Anthropic as the chat provider.
+        var azureEndpoint = configuration[$"{AzureOpenAIOptions.SectionName}:Endpoint"];
+        var azureApiKey = configuration[$"{AzureOpenAIOptions.SectionName}:ApiKey"];
+        var openAiApiKey = configuration[$"{OpenAIOptions.SectionName}:ApiKey"];
+
+        if (!string.IsNullOrWhiteSpace(azureEndpoint) && !string.IsNullOrWhiteSpace(azureApiKey))
+        {
+            services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+        }
+        else if (!string.IsNullOrWhiteSpace(openAiApiKey))
+        {
+            services.Configure<OpenAIOptions>(configuration.GetSection(OpenAIOptions.SectionName));
+            services.AddSingleton<IEmbeddingService, OpenAIEmbeddingService>();
+        }
+        else
+        {
+            // No credentials configured — register Azure service so startup doesn't fail;
+            // embedding calls will return errors until credentials are supplied.
+            services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+        }
 
         // ---- Azure AI Search (T05) ----
         services.Configure<AzureSearchOptions>(

@@ -40,8 +40,6 @@ internal sealed class AiProviderHealthCheck(
 
     private (bool isConfigured, string message) CheckProvider(string providerName)
     {
-        // Azure OpenAI is the only fully-implemented provider (T07).
-        // The remaining providers are stubs that return errors on every call.
         if (providerName == AzureOpenAiProvider.ProviderName)
         {
             var endpoint = configuration[$"{AzureOpenAIOptions.SectionName}:Endpoint"];
@@ -56,10 +54,21 @@ internal sealed class AiProviderHealthCheck(
             return (true, $"AI provider '{providerName}' is configured.");
         }
 
-        // Stub providers (OpenAI, Anthropic, Ollama) are not yet implemented.
-        if (providerName is OpenAiProvider.ProviderName
-                          or AnthropicProvider.ProviderName
-                          or OllamaProvider.ProviderName)
+        if (providerName == AnthropicProvider.ProviderName)
+        {
+            var apiKey = configuration[$"{AnthropicOptions.SectionName}:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return (false,
+                    $"AI provider '{providerName}' is not fully configured (missing ApiKey).");
+            }
+
+            return (true, $"AI provider '{providerName}' is configured.");
+        }
+
+        // OpenAI and Ollama remain stubs.
+        if (providerName is OpenAiProvider.ProviderName or OllamaProvider.ProviderName)
         {
             return (false,
                 $"AI provider '{providerName}' is a stub — full implementation not yet available.");
