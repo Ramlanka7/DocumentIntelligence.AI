@@ -1,4 +1,4 @@
-import type { AnalysisCitation, AnalysisRecommendation, RiskItem } from '../../analysis/models/analysis.models';
+import type { AnalysisRecommendation, RiskItem } from '../../analysis/models/analysis.models';
 
 /**
  * ComparisonType values MUST match the C# Domain/Enums/ComparisonType enum member names
