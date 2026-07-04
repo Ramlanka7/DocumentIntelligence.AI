@@ -11,7 +11,6 @@ using AI.DocumentIntelligence.Infrastructure;
 using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
 using AI.DocumentIntelligence.Persistence.Context;
-using AI.DocumentIntelligence.Persistence;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -214,7 +213,6 @@ if (autoMigrate && !string.IsNullOrWhiteSpace(dbConnectionString))
 
 // ---- Global exception handler (must be outermost) ----
 app.UseExceptionHandler();
-await app.Services.InitialiseDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {

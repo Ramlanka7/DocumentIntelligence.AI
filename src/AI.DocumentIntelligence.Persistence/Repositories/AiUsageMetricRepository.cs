@@ -1,12 +1,13 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
 internal sealed class AiUsageMetricRepository : Repository<AiUsageMetric>, IAiUsageMetricRepository
 {
-    public AiUsageMetricRepository(ApplicationDbContext context)
+    public AiUsageMetricRepository(AppDbContext context)
         : base(context)
     {
     }

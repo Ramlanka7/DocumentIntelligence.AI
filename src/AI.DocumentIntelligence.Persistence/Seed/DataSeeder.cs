@@ -1,5 +1,6 @@
 using AI.DocumentIntelligence.Domain.Entities;
 using AI.DocumentIntelligence.Domain.Enums;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -13,12 +14,12 @@ namespace AI.DocumentIntelligence.Persistence.Seed;
 /// </summary>
 internal sealed partial class DataSeeder
 {
-    private readonly ApplicationDbContext _context;
+    private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<DataSeeder> _logger;
 
     public DataSeeder(
-        ApplicationDbContext context,
+        AppDbContext context,
         IConfiguration configuration,
         ILogger<DataSeeder> logger)
     {
