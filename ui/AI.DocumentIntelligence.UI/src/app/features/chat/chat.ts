@@ -40,7 +40,6 @@ export class ChatComponent implements OnInit {
   protected readonly service = inject(ChatApiService);
 
   protected readonly showNewSessionForm = signal(false);
-  protected readonly newSessionTitle = signal('');
   protected readonly newSessionDocs = signal('');
   protected readonly sidebarOpen = signal(true);
 
@@ -56,7 +55,6 @@ export class ChatComponent implements OnInit {
 
   protected openNewSessionForm(): void {
     this.showNewSessionForm.set(true);
-    this.newSessionTitle.set('');
     this.newSessionDocs.set('');
   }
 
@@ -65,16 +63,14 @@ export class ChatComponent implements OnInit {
   }
 
   protected createSession(): void {
-    const title = this.newSessionTitle().trim();
     const docs = this.newSessionDocs()
       .split(',')
       .map((d) => d.trim())
       .filter(Boolean);
 
-    this.service.createSession({
-      documentIds: docs.length ? docs : ['default'],
-      title: title || undefined,
-    });
+    // Start a new conversation locally — the real session ID is assigned by the
+    // backend on the first POST /chat call.
+    this.service.startNewConversation(docs.length ? docs : []);
     this.showNewSessionForm.set(false);
   }
 
@@ -96,10 +92,6 @@ export class ChatComponent implements OnInit {
 
   protected dismissError(): void {
     this.service.setError(null);
-  }
-
-  protected onTitleInput(event: Event): void {
-    this.newSessionTitle.set((event.target as HTMLInputElement).value);
   }
 
   protected onDocsInput(event: Event): void {

@@ -9,10 +9,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { ComparisonResult, Citation } from '../../models/comparison.models';
+import { Citation, ComparisonResult, DocumentDifference } from '../../models/comparison.models';
 import { DiffViewerComponent } from '../diff-viewer/diff-viewer';
 
-type ActiveTab = 'overview' | 'differences' | 'risk' | 'recommendations' | 'changelog' | 'citations';
+type ActiveTab = 'overview' | 'differences' | 'risks' | 'recommendations' | 'citations';
 
 interface Tab {
   id: ActiveTab;
@@ -41,10 +41,9 @@ export class ResultsPanelComponent {
 
   protected readonly tabs: Tab[] = [
     { id: 'overview', label: 'Executive Overview', icon: 'summarize' },
-    { id: 'differences', label: 'Key Differences', icon: 'compare_arrows' },
-    { id: 'risk', label: 'Risk Analysis', icon: 'warning' },
+    { id: 'differences', label: 'Differences', icon: 'compare_arrows' },
+    { id: 'risks', label: 'Risk Analysis', icon: 'warning' },
     { id: 'recommendations', label: 'Recommendations', icon: 'lightbulb' },
-    { id: 'changelog', label: 'Change Log', icon: 'history' },
     { id: 'citations', label: 'Source Citations', icon: 'source' },
   ];
 
@@ -72,22 +71,26 @@ export class ResultsPanelComponent {
   }
 
   protected trackCitation(_index: number, citation: Citation): string {
-    return `${citation.documentName}-${citation.pageNumber}-${citation.paragraphRef}`;
+    return `${citation.documentName}-${citation.pageNumber}-${citation.paragraphReference}`;
   }
 
-  protected trackRecommendation(index: number, _rec: string): number {
+  protected trackDifference(index: number, diff: DocumentDifference): string {
+    return `${diff.type}-${diff.section}-${index}`;
+  }
+
+  protected trackRecommendation(index: number, _rec: { title: string; detail: string }): number {
     return index;
   }
 
   protected get addedCount(): number {
-    return this.result().changeLog.filter((e) => e.status === 'added').length;
+    return this.result().differences.filter((e) => e.type === 'Added').length;
   }
 
   protected get removedCount(): number {
-    return this.result().changeLog.filter((e) => e.status === 'removed').length;
+    return this.result().differences.filter((e) => e.type === 'Removed').length;
   }
 
   protected get modifiedCount(): number {
-    return this.result().changeLog.filter((e) => e.status === 'modified').length;
+    return this.result().differences.filter((e) => e.type === 'Modified').length;
   }
 }

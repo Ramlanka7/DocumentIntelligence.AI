@@ -1,9 +1,15 @@
+import type { AnalysisCitation, AnalysisRecommendation, RiskItem } from '../../analysis/models/analysis.models';
+
+/**
+ * ComparisonType values MUST match the C# Domain/Enums/ComparisonType enum member names
+ * exactly (PascalCase) for JSON serialisation.
+ */
 export type ComparisonType =
-  | 'side-by-side'
-  | 'version'
-  | 'contract'
-  | 'policy'
-  | 'custom';
+  | 'SideBySide'
+  | 'Version'
+  | 'Contract'
+  | 'Policy'
+  | 'Custom';
 
 export interface ComparisonTypeOption {
   value: ComparisonType;
@@ -18,79 +24,82 @@ export interface DocumentInfo {
   size: number;
 }
 
-import type { Citation } from '../../../core/models/citation.model';
+/** Citation shape from Application/Contracts/Citation.cs (camelCase serialised) */
+export interface Citation {
+  documentId: string;
+  documentName: string;
+  pageNumber: number;
+  paragraphReference: string;
+  snippet: string;
+  confidenceScore: number;
+}
 
-export type { Citation };
+/** DifferenceType values from Application/Contracts/Comparison/DifferenceType.cs */
+export type DifferenceType = 'Added' | 'Removed' | 'Modified';
 
-export type DiffStatus = 'added' | 'removed' | 'modified';
-
-export interface DiffEntry {
-  id: string;
-  status: DiffStatus;
+/** DocumentDifference.cs — Type, Section, Before, After, Summary, Citations */
+export interface DocumentDifference {
+  type: DifferenceType;
   section: string;
-  contentBefore?: string;
-  contentAfter?: string;
-  changeType: 'clause' | 'pricing' | 'risk' | 'compliance' | 'general';
+  before: string | null;
+  after: string | null;
+  summary: string;
   citations: Citation[];
 }
 
+/**
+ * ComparisonResult.cs — ExecutiveOverview, Differences, Risks, Recommendations, Sources
+ * Fields mirror the backend record (camelCase serialised).
+ */
 export interface ComparisonResult {
-  id: string;
   executiveOverview: string;
-  keyDifferences: DiffEntry[];
-  riskAnalysis: string;
-  recommendations: string[];
-  changeLog: DiffEntry[];
-  citations: Citation[];
+  differences: DocumentDifference[];
+  risks: RiskItem[];
+  recommendations: AnalysisRecommendation[];
+  sources: Citation[];
 }
 
+/** Response from POST /api/v1/documents — mirrors UploadDocumentResponse.cs */
 export interface UploadDocumentResponse {
-  id: string;
-  name: string;
-  size: number;
-  contentType: string;
-  uploadedAt: string;
+  documentId: string;
+  fileName: string;
+  status: string;
 }
 
-export interface CreateComparisonRequest {
+/** Request body for POST /api/v1/comparison */
+export interface CompareDocumentsRequest {
   documentIds: string[];
   comparisonType: ComparisonType;
-}
-
-export interface ComparisonJobResponse {
-  id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result?: ComparisonResult;
-  errorMessage?: string;
+  customInstructions?: string;
 }
 
 export const COMPARISON_TYPE_OPTIONS: ComparisonTypeOption[] = [
   {
-    value: 'side-by-side',
+    value: 'SideBySide',
     label: 'Side-by-Side Comparison',
     description: 'View documents in parallel columns to spot differences visually.',
     icon: 'compare',
   },
   {
-    value: 'version',
+    value: 'Version',
     label: 'Version Comparison',
     description: 'Track how a document evolved across versions over time.',
     icon: 'history',
   },
   {
-    value: 'contract',
+    value: 'Contract',
     label: 'Contract Comparison',
     description: 'Analyze clause-level changes, obligations, and legal risk deltas.',
     icon: 'gavel',
   },
   {
-    value: 'policy',
+    value: 'Policy',
     label: 'Policy Comparison',
     description: 'Identify compliance gaps and policy divergences between documents.',
     icon: 'policy',
   },
   {
-    value: 'custom',
+    value: 'Custom',
     label: 'Custom Comparison',
     description: 'Define your own comparison criteria and focus areas.',
     icon: 'tune',

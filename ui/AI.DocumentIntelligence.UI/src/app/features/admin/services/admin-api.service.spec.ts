@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { AdminApiService } from './admin-api.service';
 import { DEFAULT_FILTERS } from '../models/admin-dashboard.models';
+
 describe('AdminApiService', () => {
   let service: AdminApiService;
   let httpMock: HttpTestingController;
@@ -28,7 +29,7 @@ describe('AdminApiService', () => {
     expect(service.error()).toBeNull();
   });
 
-  it('loadMetrics sets loading=true, then populates metrics on success', () => {
+  it('loadMetrics should set loading=true while in-flight, then populate metrics on success', () => {
     service.loadMetrics(DEFAULT_FILTERS);
 
     expect(service.loading()).toBeTrue();
@@ -60,18 +61,27 @@ describe('AdminApiService', () => {
     expect(service.error()).toBeNull();
   });
 
-  it('loadMetrics falls back to mock data on HTTP error', () => {
+  it('loadMetrics should set error signal and leave metrics null on HTTP error — no fabricated data', () => {
     service.loadMetrics(DEFAULT_FILTERS);
 
     const req = httpMock.expectOne((r) => r.url.includes('/admin/metrics'));
     req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
 
     expect(service.loading()).toBeFalse();
-    expect(service.metrics()).not.toBeNull();
-    // Mock data should have realistic values
-    const metrics = service.metrics();
-    expect(metrics?.totalUsers).toBeGreaterThan(0);
-    expect(metrics?.aiUsage.dailyUsage.length).toBe(14);
+    // No fabricated metrics — metrics stays null
+    expect(service.metrics()).toBeNull();
+    expect(service.error()).toBeTruthy();
+    expect(service.error()).toContain('metrics');
+  });
+
+  it('loadMetrics should set 403 specific error message', () => {
+    service.loadMetrics(DEFAULT_FILTERS);
+
+    const req = httpMock.expectOne((r) => r.url.includes('/admin/metrics'));
+    req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+    expect(service.metrics()).toBeNull();
+    expect(service.error()).toContain('permission');
   });
 
   it('setError updates the error signal', () => {
@@ -81,7 +91,7 @@ describe('AdminApiService', () => {
     expect(service.error()).toBeNull();
   });
 
-  it('loadMetrics appends operationType query param when not "all"', () => {
+  it('loadMetrics should append operationType query param when not "all"', () => {
     service.loadMetrics({ ...DEFAULT_FILTERS, operationType: 'analysis' });
 
     const req = httpMock.expectOne((r) =>
@@ -108,7 +118,7 @@ describe('AdminApiService', () => {
     expect(service.loading()).toBeFalse();
   });
 
-  it('buildParams omits "all" operationType from query string', () => {
+  it('loadMetrics should omit operationType from query string when "all"', () => {
     service.loadMetrics({ ...DEFAULT_FILTERS, operationType: 'all' });
 
     const req = httpMock.expectOne(
@@ -133,7 +143,7 @@ describe('AdminApiService', () => {
     });
   });
 
-  it('loadMetrics appends dateFrom and dateTo when provided', () => {
+  it('loadMetrics should append dateFrom and dateTo when provided', () => {
     service.loadMetrics({ ...DEFAULT_FILTERS, dateFrom: '2026-06-01', dateTo: '2026-06-30' });
 
     const req = httpMock.expectOne(
@@ -141,6 +151,31 @@ describe('AdminApiService', () => {
         r.url.includes('/admin/metrics') &&
         r.params.get('dateFrom') === '2026-06-01' &&
         r.params.get('dateTo') === '2026-06-30',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      totalUsers: 1,
+      totalDocuments: 1,
+      totalAnalyses: 1,
+      totalComparisons: 0,
+      totalChatSessions: 0,
+      aiUsage: {
+        totalPromptTokens: 0,
+        totalCompletionTokens: 0,
+        totalCost: 0,
+        averageProcessingTimeMs: 0,
+        dailyUsage: [],
+        usageByType: [],
+      },
+      recentActivity: [],
+    });
+  });
+
+  it('loadMetrics should append userId query param when provided', () => {
+    service.loadMetrics({ ...DEFAULT_FILTERS, userId: 'user-abc' });
+
+    const req = httpMock.expectOne(
+      (r) => r.url.includes('/admin/metrics') && r.params.get('userId') === 'user-abc',
     );
     expect(req.request.method).toBe('GET');
     req.flush({

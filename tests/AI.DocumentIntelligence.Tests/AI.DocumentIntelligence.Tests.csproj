@@ -34,6 +34,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <!-- Testcontainers for ephemeral PostgreSQL + pgvector -->
     <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.Azurite" />
     <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 

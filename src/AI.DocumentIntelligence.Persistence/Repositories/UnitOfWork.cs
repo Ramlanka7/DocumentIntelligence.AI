@@ -1,17 +1,31 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Common;
+using AI.DocumentIntelligence.Persistence.Context;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
 /// <summary>
-/// Stub implementation of <see cref="IUnitOfWork"/>.
-/// A full EF Core implementation will replace this when T02 (Persistence) is complete.
+/// EF Core implementation of <see cref="IUnitOfWork"/>. Caches generic repositories per entity
+/// type and delegates <see cref="SaveChangesAsync"/> to the underlying <see cref="AppDbContext"/>.
 /// </summary>
-public sealed class UnitOfWork : IUnitOfWork
+internal sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
 {
-    public IRepository<T> Repository<T>() where T : BaseEntity =>
-        throw new NotImplementedException("UnitOfWork is a stub pending T02 (EF Core Persistence).");
+    private readonly Dictionary<Type, object> _repositories = [];
 
+    /// <inheritdoc />
+    public IRepository<T> Repository<T>() where T : BaseEntity
+    {
+        var type = typeof(T);
+        if (!_repositories.TryGetValue(type, out var repo))
+        {
+            repo = new Repository<T>(context);
+            _repositories[type] = repo;
+        }
+
+        return (IRepository<T>)repo;
+    }
+
+    /// <inheritdoc />
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("UnitOfWork is a stub pending T02 (EF Core Persistence).");
+        context.SaveChangesAsync(cancellationToken);
 }

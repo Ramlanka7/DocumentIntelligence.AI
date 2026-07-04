@@ -34,7 +34,7 @@ export class ComparisonComponent {
   protected readonly service = inject(ComparisonApiService);
 
   protected readonly files = signal<File[]>([]);
-  protected readonly selectedType = signal<ComparisonType>('side-by-side');
+  protected readonly selectedType = signal<ComparisonType>('SideBySide');
 
   protected readonly canCompare = computed(
     () => this.files().length >= 2 && this.files().length <= 4 && !this.service.loading(),
@@ -47,7 +47,7 @@ export class ComparisonComponent {
 
   protected reset(): void {
     this.files.set([]);
-    this.selectedType.set('side-by-side');
+    this.selectedType.set('SideBySide');
     this.service.reset();
   }
 

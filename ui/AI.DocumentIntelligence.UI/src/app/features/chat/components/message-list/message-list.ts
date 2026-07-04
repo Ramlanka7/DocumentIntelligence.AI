@@ -10,7 +10,7 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { ChatMessage, Citation } from '../../models/chat.models';
+import { ChatCitation, ChatMessage } from '../../models/chat.models';
 import { CitationChipComponent } from '../citation-chip/citation-chip';
 
 @Component({
@@ -40,7 +40,7 @@ export class MessageListComponent {
     return message.id;
   }
 
-  protected trackCitation(_index: number, citation: Citation): string {
-    return `${citation.documentName}-${citation.pageNumber}-${citation.paragraphRef}`;
+  protected trackCitation(_index: number, citation: ChatCitation): string {
+    return `${citation.documentName}-${citation.pageNumber}-${citation.paragraphReference}`;
   }
 }

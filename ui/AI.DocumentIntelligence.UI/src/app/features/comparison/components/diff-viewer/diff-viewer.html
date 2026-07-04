@@ -29,29 +29,29 @@
       @for (entry of entries(); track trackEntry($index, entry)) {
         <article
           class="diff-entry"
-          [class.diff-entry--added]="entry.status === 'added'"
-          [class.diff-entry--removed]="entry.status === 'removed'"
-          [class.diff-entry--modified]="entry.status === 'modified'"
-          [attr.aria-label]="getStatusConfig(entry.status).ariaLabel + ' in section ' + entry.section"
+          [class.diff-entry--added]="entry.type === 'Added'"
+          [class.diff-entry--removed]="entry.type === 'Removed'"
+          [class.diff-entry--modified]="entry.type === 'Modified'"
+          [attr.aria-label]="getStatusConfig(entry.type).ariaLabel + ' in section ' + entry.section"
         >
           <!-- Entry header -->
           <div class="diff-entry__header">
             <span
               class="diff-entry__marker"
-              [attr.aria-label]="getStatusConfig(entry.status).ariaLabel"
+              [attr.aria-label]="getStatusConfig(entry.type).ariaLabel"
             >
-              {{ getStatusConfig(entry.status).marker }}
+              {{ getStatusConfig(entry.type).marker }}
             </span>
             <div class="diff-entry__meta">
               <span class="diff-entry__section">{{ entry.section }}</span>
               <div class="diff-entry__badges">
-                <span class="badge badge--status" [attr.data-status]="entry.status">
-                  {{ getStatusConfig(entry.status).label }}
-                </span>
-                <span class="badge badge--type">
-                  {{ getChangeTypeLabel(entry.changeType) }}
+                <span class="badge badge--status" [attr.data-status]="entry.type">
+                  {{ getStatusConfig(entry.type).label }}
                 </span>
               </div>
+              @if (entry.summary) {
+                <span class="diff-entry__summary">{{ entry.summary }}</span>
+              }
             </div>
           </div>
 
@@ -60,11 +60,11 @@
             <!-- Before (left) -->
             <div
               class="diff-pane diff-pane--before"
-              [class.diff-pane--empty]="!entry.contentBefore"
+              [class.diff-pane--empty]="!entry.before"
               aria-label="Content before change"
             >
-              @if (entry.contentBefore) {
-                <p class="diff-pane__text">{{ entry.contentBefore }}</p>
+              @if (entry.before) {
+                <p class="diff-pane__text">{{ entry.before }}</p>
               } @else {
                 <span class="diff-pane__placeholder">— No content —</span>
               }
@@ -78,11 +78,11 @@
             <!-- After (right) -->
             <div
               class="diff-pane diff-pane--after"
-              [class.diff-pane--empty]="!entry.contentAfter"
+              [class.diff-pane--empty]="!entry.after"
               aria-label="Content after change"
             >
-              @if (entry.contentAfter) {
-                <p class="diff-pane__text">{{ entry.contentAfter }}</p>
+              @if (entry.after) {
+                <p class="diff-pane__text">{{ entry.after }}</p>
               } @else {
                 <span class="diff-pane__placeholder">— Content removed —</span>
               }
@@ -97,10 +97,10 @@
                 <span
                   class="citation-chip"
                   role="note"
-                  [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphRef + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                  [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphReference + ' confidence ' + formatConfidence(citation.confidenceScore)"
                   [title]="'Confidence: ' + formatConfidence(citation.confidenceScore)"
                 >
-                  {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphRef }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                  {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
                 </span>
               }
             </div>

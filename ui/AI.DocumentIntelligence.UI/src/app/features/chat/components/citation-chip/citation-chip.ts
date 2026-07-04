@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { Citation } from '../../models/chat.models';
+import { ChatCitation } from '../../models/chat.models';
 
 @Component({
   selector: 'app-citation-chip',
@@ -13,7 +13,7 @@ import { Citation } from '../../models/chat.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CitationChipComponent {
-  readonly citation = input.required<Citation>();
+  readonly citation = input.required<ChatCitation>();
 
   protected readonly confidenceLabel = computed(() =>
     `${Math.round(this.citation().confidenceScore * 100)}%`,
@@ -28,6 +28,6 @@ export class CitationChipComponent {
 
   protected readonly tooltipText = computed(() => {
     const c = this.citation();
-    return `${c.documentName} · Page ${c.pageNumber} · ${c.paragraphRef} · Confidence: ${Math.round(c.confidenceScore * 100)}%`;
+    return `${c.documentName} · Page ${c.pageNumber} · ${c.paragraphReference} · Confidence: ${Math.round(c.confidenceScore * 100)}%`;
   });
 }

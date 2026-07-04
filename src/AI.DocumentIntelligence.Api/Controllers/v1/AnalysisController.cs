@@ -1,6 +1,7 @@
 using AI.DocumentIntelligence.Api.Extensions;
 using AI.DocumentIntelligence.Application.Contracts.Analysis;
 using AI.DocumentIntelligence.Application.Features.Analysis;
+using AI.DocumentIntelligence.Application.Features.Analysis.GetAnalysisSessions;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,17 @@ public sealed class AnalysisController(ISender sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(command, cancellationToken);
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Returns a summary list of the current user's analysis sessions.</summary>
+    [HttpGet("sessions")]
+    [ProducesResponseType(typeof(IReadOnlyList<AnalysisSessionSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSessionsAsync(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetAnalysisSessionsQuery(), cancellationToken);
         return result.ToActionResult(this);
     }
 }

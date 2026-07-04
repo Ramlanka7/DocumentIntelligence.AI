@@ -40,12 +40,14 @@
             <span class="session-item__title">{{ session.title }}</span>
             <span class="session-item__meta">
               {{ session.messageCount }} msgs &middot;
-              <time [attr.datetime]="session.updatedAt">{{ session.updatedAt | date: 'shortDate' }}</time>
+              <time [attr.datetime]="session.updatedAt ?? session.createdAt">
+                {{ (session.updatedAt ?? session.createdAt) | date: 'shortDate' }}
+              </time>
             </span>
-            @if (session.documentNames.length > 0) {
+            @if (session.documentIds.length > 0) {
               <span class="session-item__docs">
                 <mat-icon aria-hidden="true">description</mat-icon>
-                {{ session.documentNames.join(', ') }}
+                {{ session.documentIds.length }} document{{ session.documentIds.length === 1 ? '' : 's' }}
               </span>
             }
           </div>
