@@ -41,8 +41,7 @@ RUN dotnet publish src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.c
 ##   docker run --rm \
 ##     -e ConnectionStrings__DefaultConnection=... \
 ##     -e Jwt__SecretKey=... \
-##     ghcr.io/<owner>/ai-document-intelligence-api:sha-<sha> \
-##     -- migrate   # see ENTRYPOINT note below
+##     ghcr.io/<owner>/ai-document-intelligence-api:sha-<sha>
 ## ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS migrator
 WORKDIR /src
