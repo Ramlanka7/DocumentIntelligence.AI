@@ -217,11 +217,11 @@ internal sealed class PdfDocumentWriter
     private const float MarginT = 72f;
     private const float MarginB = 72f;
 
-    private static readonly float s_textW = PageW - MarginL - MarginR;
+    private static readonly float TextW = PageW - MarginL - MarginR;
 
     // Per-block-kind metrics: (fontSize, leading, avgCharWidth, bold, indentLeft)
     // avgCharWidth is tuned for Helvetica; close enough for word-wrap purposes.
-    private static readonly (float Size, float Leading, float AvgCharW, bool Bold, float IndentL)[] s_metrics =
+    private static readonly (float Size, float Leading, float AvgCharW, bool Bold, float IndentL)[] Metrics =
     [
         /* Title    */ (22f, 30f, 12.5f, true,  0f),
         /* Subtitle */ (13f, 18f,  7.5f, false, 0f),
@@ -332,7 +332,7 @@ internal sealed class PdfDocumentWriter
 
         foreach (var block in _blocks)
         {
-            var (size, leading, avgW, bold, indentL) = s_metrics[(int)block.Kind];
+            var (size, leading, avgW, bold, indentL) = Metrics[(int)block.Kind];
 
             if (block.Kind == PdfBlockKind.Rule)
             {
@@ -360,7 +360,7 @@ internal sealed class PdfDocumentWriter
                 continue;
             }
 
-            float lineW = s_textW - indentL;
+            float lineW = TextW - indentL;
             int maxChars = Math.Max(1, (int)(lineW / avgW));
             var lines = WrapText(block.Text, maxChars);
 

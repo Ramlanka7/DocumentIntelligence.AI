@@ -1,7 +1,7 @@
 using AI.DocumentIntelligence.Api.Extensions;
 using AI.DocumentIntelligence.Application.Features.Documents.Delete;
-using AI.DocumentIntelligence.Application.Features.Documents.Queries;
 using AI.DocumentIntelligence.Application.Features.Documents.List;
+using AI.DocumentIntelligence.Application.Features.Documents.Queries;
 using AI.DocumentIntelligence.Application.Features.Documents.Upload;
 using Asp.Versioning;
 using MediatR;
