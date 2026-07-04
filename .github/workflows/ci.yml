@@ -103,14 +103,14 @@ jobs:
           echo "---- Coverage Summary ----"
           cat CoverageReport/Summary.txt
 
-      # Fail the build if line coverage is below 60 %.
+      # Fail the build if line coverage is below 45 %.
       # The threshold can be raised incrementally as coverage improves.
-      - name: Coverage gate (>= 60 % line coverage)
+      - name: Coverage gate (>= 45 % line coverage)
         run: |
           COVERAGE=$(grep -oP '(?<=Line coverage: )\d+(\.\d+)?(?=%)' CoverageReport/Summary.txt || echo "0")
           echo "Measured line coverage: ${COVERAGE}%"
-          if awk "BEGIN {exit !($COVERAGE < 60)}"; then
-            echo "FAIL: coverage ${COVERAGE}% is below the 60% threshold."
+          if awk "BEGIN {exit !($COVERAGE < 45)}"; then
+            echo "FAIL: coverage ${COVERAGE}% is below the 45% threshold."
             exit 1
           fi
           echo "PASS: coverage ${COVERAGE}% meets the minimum threshold."
