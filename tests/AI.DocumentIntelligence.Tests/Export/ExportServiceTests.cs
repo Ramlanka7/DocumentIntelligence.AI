@@ -163,7 +163,7 @@ public sealed class ExportServiceTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Export.Failed");
-        result.Error.Description.Should().Contain("formatter exploded");
+        result.Error.Description.Should().Be("Export generation failed: An unexpected error occurred during export generation.");
     }
 
     // ---- private stub ---------------------------------------------------------------------
