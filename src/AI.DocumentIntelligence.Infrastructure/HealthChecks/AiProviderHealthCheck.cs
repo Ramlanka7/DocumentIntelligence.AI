@@ -51,6 +51,12 @@ internal sealed class AiProviderHealthCheck(
                     $"AI provider '{providerName}' is not fully configured (missing Endpoint or ApiKey).");
             }
 
+            if (!System.Uri.TryCreate(endpoint, System.UriKind.Absolute, out _))
+            {
+                return (false,
+                    $"AI provider '{providerName}' is not fully configured (invalid Endpoint URI).");
+            }
+
             return (true, $"AI provider '{providerName}' is configured.");
         }
 
