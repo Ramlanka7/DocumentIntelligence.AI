@@ -10,6 +10,8 @@ using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Infrastructure;
 using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
+using AI.DocumentIntelligence.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -67,9 +69,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// ---- CORS for Angular dev server ----
+// ---- CORS — origins loaded from config so production can restrict to the real hostname ----
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? ["http://localhost:4200"];
+
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
-    policy.WithOrigins("http://localhost:4200")
+    policy.WithOrigins(allowedOrigins)
           .AllowAnyHeader()
           .AllowAnyMethod()));
 
@@ -190,6 +196,16 @@ builder.Services
     });
 
 var app = builder.Build();
+
+// ---- Database migration ----
+// Only runs when a real connection string is present (skipped in tests that use in-memory fakes).
+var dbConnectionString = app.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrWhiteSpace(dbConnectionString))
+{
+    using var migrationScope = app.Services.CreateScope();
+    var dbContext = migrationScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 // ---- Global exception handler (must be outermost) ----
 app.UseExceptionHandler();

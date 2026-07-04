@@ -37,8 +37,11 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        // Register the scoped DbContext for repositories and the Unit of Work.
-        services.AddDbContext<AppDbContext>(options =>
+        // AddDbContextPool reuses DbContext instances across requests instead of allocating new
+        // ones, reducing GC pressure in high-throughput production scenarios. EF Core resets
+        // the ChangeTracker and state between uses, so it is safe as long as the context has
+        // no constructor dependencies beyond DbContextOptions — which AppDbContext does not.
+        services.AddDbContextPool<AppDbContext>(options =>
         {
             if (!string.IsNullOrWhiteSpace(connectionString))
             {
