@@ -45,7 +45,7 @@
             <div class="diff-entry__meta">
               <span class="diff-entry__section">{{ entry.section }}</span>
               <div class="diff-entry__badges">
-                <span class="badge badge--status" [attr.data-status]="entry.type">
+                <span class="badge badge--status" [attr.data-status]="entry.type.toLowerCase()">
                   {{ getStatusConfig(entry.type).label }}
                 </span>
               </div>
