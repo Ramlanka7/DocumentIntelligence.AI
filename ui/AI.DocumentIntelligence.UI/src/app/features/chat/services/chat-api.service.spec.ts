@@ -4,18 +4,39 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { environment } from '../../../../environments/environment';
 import { ChatApiService } from './chat-api.service';
-import { ChatSession, ChatMessage } from '../models/chat.models';
+import { ChatResponse, ChatSession, ChatSessionSummary, EMPTY_SESSION_ID } from '../models/chat.models';
 
 const API = environment.apiBaseUrl;
 
-const makeMockSession = (id: string): ChatSession => ({
+const makeMockSummary = (id: string): ChatSessionSummary => ({
   id,
   title: `Session ${id}`,
   documentIds: ['doc-1'],
-  documentNames: ['Test.pdf'],
+  status: 'InProgress',
+  messageCount: 2,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  messageCount: 0,
+});
+
+const makeMockResponse = (sessionId: string): ChatResponse => ({
+  answer: 'This is the AI answer.',
+  citations: [
+    {
+      documentId: 'doc-1',
+      documentName: 'Test.pdf',
+      pageNumber: 3,
+      paragraphReference: '§2.1',
+      snippet: 'Relevant excerpt.',
+      confidenceScore: 0.94,
+    },
+  ],
+  usage: {
+    promptTokens: 100,
+    completionTokens: 50,
+    totalTokens: 150,
+    estimatedCost: 0.001,
+  },
+  sessionId,
 });
 
 describe('ChatApiService', () => {
@@ -48,79 +69,102 @@ describe('ChatApiService', () => {
     expect(service.streamingMessageId()).toBeNull();
   });
 
+  // ── loadSessions ─────────────────────────────────────────────────────────────
+
   it('loadSessions should GET /chat/sessions and populate signal', () => {
-    const mockSessions: ChatSession[] = [makeMockSession('s1'), makeMockSession('s2')];
+    const summaries: ChatSessionSummary[] = [makeMockSummary('s1'), makeMockSummary('s2')];
     service.loadSessions();
 
     const req = httpMock.expectOne(`${API}/chat/sessions`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockSessions);
+    req.flush(summaries);
 
     expect(service.sessions()).toHaveSize(2);
     expect(service.sessionsLoading()).toBe(false);
+    expect(service.error()).toBeNull();
   });
 
-  it('loadSessions should fall back to mock data on HTTP error', () => {
+  it('loadSessions should set error signal (not mock data) on HTTP error', () => {
     service.loadSessions();
     const req = httpMock.expectOne(`${API}/chat/sessions`);
-    req.error(new ProgressEvent('network error'));
+    req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
 
-    expect(service.sessions().length).toBeGreaterThan(0);
+    // No fabricated sessions — sessions stays empty, error is set
+    expect(service.sessions()).toHaveSize(0);
     expect(service.sessionsLoading()).toBe(false);
+    expect(service.error()).toBeTruthy();
   });
 
-  it('createSession should POST /chat/sessions', () => {
-    service.createSession({ documentIds: ['doc-1'], title: 'My Session' });
+  // ── loadSession ───────────────────────────────────────────────────────────────
 
-    const req = httpMock.expectOne(`${API}/chat/sessions`);
-    expect(req.request.method).toBe('POST');
-
-    const newSession = makeMockSession('s-new');
-    req.flush(newSession);
-
-    expect(service.sessions()).toContain(newSession);
-    expect(service.activeSession()).toEqual(newSession);
-  });
-
-  it('createSession should fall back to mock session on HTTP error', () => {
-    service.createSession({ documentIds: ['doc-1'], title: 'Fallback Session' });
-    const req = httpMock.expectOne(`${API}/chat/sessions`);
-    req.error(new ProgressEvent('network error'));
-
-    expect(service.sessions().length).toBe(1);
-    expect(service.activeSession()).not.toBeNull();
-    expect(service.activeSession()?.title).toBe('Fallback Session');
-  });
-
-  it('loadSession should GET /chat/sessions/{id}/messages', () => {
-    // Pre-load sessions so activeSession lookup works
-    const s1 = makeMockSession('s1');
-    service['_sessions'].set([s1]);
+  it('loadSession should GET /chat/sessions/{id} (not /chat/sessions/{id}/messages)', () => {
+    service['_sessions'].set([
+      {
+        id: 's1', title: 'Test', documentIds: ['doc-1'],
+        status: 'InProgress', messageCount: 0,
+        createdAt: new Date().toISOString(), updatedAt: null,
+      },
+    ]);
 
     service.loadSession('s1');
 
-    const req = httpMock.expectOne(`${API}/chat/sessions/s1/messages`);
+    const req = httpMock.expectOne(`${API}/chat/sessions/s1`);
     expect(req.request.method).toBe('GET');
+    req.flush({
+      id: 's1',
+      documentIds: ['doc-1'],
+      status: 'InProgress',
+      messages: [
+        {
+          id: 'm1',
+          ordinal: 0,
+          role: 'User',
+          content: 'Hello',
+          citations: [],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'm2',
+          ordinal: 1,
+          role: 'Assistant',
+          content: 'Hi there',
+          citations: [
+            { documentName: 'Test.pdf', page: 1, paragraph: '§1.1', confidence: 0.9 },
+          ],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: null,
+    });
 
-    const messages: ChatMessage[] = [
-      {
-        id: 'm1',
-        sessionId: 's1',
-        role: 'user',
-        content: 'Hello',
-        citations: [],
-        createdAt: new Date().toISOString(),
-      },
-    ];
-    req.flush(messages);
-
-    expect(service.messages()).toHaveSize(1);
+    expect(service.messages()).toHaveSize(2);
+    expect(service.messages()[0].role).toBe('user');
+    expect(service.messages()[1].role).toBe('assistant');
+    expect(service.messages()[1].citations).toHaveSize(1);
     expect(service.loading()).toBe(false);
   });
 
+  it('loadSession should set error signal on HTTP error', () => {
+    service.loadSession('s1');
+    const req = httpMock.expectOne(`${API}/chat/sessions/s1`);
+    req.flush('Not found', { status: 404, statusText: 'Not Found' });
+
+    expect(service.messages()).toHaveSize(0);
+    expect(service.loading()).toBe(false);
+    expect(service.error()).toBeTruthy();
+  });
+
+  // ── deleteSession ─────────────────────────────────────────────────────────────
+
   it('deleteSession should DELETE /chat/sessions/{id}', () => {
-    const s1 = makeMockSession('s1');
-    service['_sessions'].set([s1]);
+    service['_sessions'].set([
+      {
+        id: 's1', title: 'Test', documentIds: ['doc-1'],
+        status: 'InProgress', messageCount: 0,
+        createdAt: new Date().toISOString(), updatedAt: null,
+      },
+    ]);
 
     service.deleteSession('s1');
     const req = httpMock.expectOne(`${API}/chat/sessions/s1`);
@@ -130,16 +174,41 @@ describe('ChatApiService', () => {
     expect(service.sessions()).toHaveSize(0);
   });
 
-  it('deleteSession should remove session locally on HTTP error', () => {
-    const s1 = makeMockSession('s1');
-    service['_sessions'].set([s1]);
+  it('deleteSession should remove locally on 404 (already gone)', () => {
+    service['_sessions'].set([
+      {
+        id: 's1', title: 'Test', documentIds: [],
+        status: 'InProgress', messageCount: 0,
+        createdAt: new Date().toISOString(), updatedAt: null,
+      },
+    ]);
 
     service.deleteSession('s1');
     const req = httpMock.expectOne(`${API}/chat/sessions/s1`);
-    req.error(new ProgressEvent('network error'));
+    req.flush(null, { status: 404, statusText: 'Not Found' });
 
     expect(service.sessions()).toHaveSize(0);
   });
+
+  it('deleteSession should set error on non-404 failure', () => {
+    service['_sessions'].set([
+      {
+        id: 's1', title: 'Test', documentIds: [],
+        status: 'InProgress', messageCount: 0,
+        createdAt: new Date().toISOString(), updatedAt: null,
+      },
+    ]);
+
+    service.deleteSession('s1');
+    const req = httpMock.expectOne(`${API}/chat/sessions/s1`);
+    req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
+
+    // Not removed (delete failed)
+    expect(service.sessions()).toHaveSize(1);
+    expect(service.error()).toBeTruthy();
+  });
+
+  // ── setError / clearActiveSession ─────────────────────────────────────────────
 
   it('setError should update error signal', () => {
     service.setError('Something went wrong');
@@ -149,7 +218,11 @@ describe('ChatApiService', () => {
   });
 
   it('clearActiveSession should reset active session and messages', () => {
-    service['_activeSession'].set(makeMockSession('s1'));
+    service['_activeSession'].set({
+      id: 's1', title: 'Test', documentIds: [],
+      status: 'InProgress', messageCount: 0,
+      createdAt: new Date().toISOString(), updatedAt: null,
+    });
     service['_messages'].set([
       {
         id: 'm1',
@@ -165,74 +238,145 @@ describe('ChatApiService', () => {
     expect(service.messages()).toHaveSize(0);
   });
 
-  describe('sendMessage', () => {
-    function setupActiveSession(): string {
-      service.createSession({ documentIds: ['doc-1'], title: 'Test Session' });
-      httpMock.expectOne(`${API}/chat/sessions`).error(new ProgressEvent('error'));
-      return service.activeSession()!.id;
-    }
+  // ── startNewConversation ──────────────────────────────────────────────────────
 
-    it('should optimistically add user and streaming-placeholder messages', () => {
-      const id = setupActiveSession();
-      service.sendMessage('List all risks');
+  it('startNewConversation should set active session stub with EMPTY_SESSION_ID', () => {
+    service.startNewConversation(['doc-1', 'doc-2']);
+    const session = service.activeSession();
+    expect(session).not.toBeNull();
+    expect(session!.id).toBe(EMPTY_SESSION_ID);
+    expect(session!.documentIds).toEqual(['doc-1', 'doc-2']);
+    expect(service.messages()).toHaveSize(0);
+  });
 
-      const msgs = service.messages();
-      expect(msgs).toHaveSize(2);
-      expect(msgs[0].role).toBe('user');
-      expect(msgs[0].content).toBe('List all risks');
-      expect(msgs[1].role).toBe('assistant');
-      expect(msgs[1].isStreaming).toBe(true);
-      expect(service.loading()).toBe(true);
-      expect(service.streamingMessageId()).not.toBeNull();
+  // ── sendMessage ───────────────────────────────────────────────────────────────
 
-      // Cleanup pending request
-      httpMock.expectOne(`${API}/chat/sessions/${id}/messages`).flush({
-        messageId: 'ai-1',
-        content: 'Here are the risks...',
-        citations: [],
-        createdAt: new Date().toISOString(),
-      });
+  it('sendMessage should POST to /chat (not /chat/sessions/{id}/messages)', () => {
+    service.startNewConversation(['doc-1']);
+    service.sendMessage('What are the payment terms?');
+
+    const req = httpMock.expectOne(`${API}/chat`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body.message).toBe('What are the payment terms?');
+    expect(req.request.body.documentIds).toEqual(['doc-1']);
+    expect(req.request.body.sessionId).toBe(EMPTY_SESSION_ID);
+
+    const response = makeMockResponse('real-session-id');
+    req.flush(response);
+
+    expect(service.loading()).toBe(false);
+  });
+
+  it('sendMessage should optimistically add user and placeholder messages', () => {
+    service.startNewConversation(['doc-1']);
+    service.sendMessage('List all risks');
+
+    const msgs = service.messages();
+    expect(msgs).toHaveSize(2);
+    expect(msgs[0].role).toBe('user');
+    expect(msgs[0].content).toBe('List all risks');
+    expect(msgs[1].role).toBe('assistant');
+    expect(msgs[1].isStreaming).toBe(true);
+    expect(service.loading()).toBe(true);
+    expect(service.streamingMessageId()).not.toBeNull();
+
+    // Cleanup pending request
+    httpMock.expectOne(`${API}/chat`).flush(makeMockResponse('sid-1'));
+  });
+
+  it('sendMessage should resolve placeholder with cited AI answer on success', () => {
+    service.startNewConversation(['doc-1']);
+    service.sendMessage('What are the payment terms?');
+
+    const response = makeMockResponse('sid-1');
+    httpMock.expectOne(`${API}/chat`).flush(response);
+
+    const msgs = service.messages();
+    expect(msgs).toHaveSize(2);
+    expect(msgs[1].content).toBe('This is the AI answer.');
+    expect(msgs[1].citations).toHaveSize(1);
+    expect(msgs[1].citations[0].confidenceScore).toBe(0.94);
+    expect(msgs[1].citations[0].paragraphReference).toBe('§2.1');
+    expect(msgs[1].isStreaming).toBe(false);
+    expect(service.loading()).toBe(false);
+    expect(service.streamingMessageId()).toBeNull();
+  });
+
+  it('sendMessage should assign real sessionId from response for new conversation', () => {
+    service.startNewConversation(['doc-1']);
+    service.sendMessage('Hello');
+
+    httpMock.expectOne(`${API}/chat`).flush(makeMockResponse('real-id-from-backend'));
+
+    expect(service.activeSession()?.id).toBe('real-id-from-backend');
+    expect(service.sessions().some((s) => s.id === 'real-id-from-backend')).toBe(true);
+  });
+
+  it('sendMessage should include prior history in subsequent turns', () => {
+    // Set up an existing session with one prior exchange
+    service['_activeSession'].set({
+      id: 'existing-session',
+      title: 'Test',
+      documentIds: ['doc-1'],
+      status: 'InProgress',
+      messageCount: 2,
+      createdAt: new Date().toISOString(),
+      updatedAt: null,
+    });
+    service['_messages'].set([
+      {
+        id: 'm-u1', sessionId: 'existing-session',
+        role: 'user', content: 'First question.',
+        citations: [], createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'm-a1', sessionId: 'existing-session',
+        role: 'assistant', content: 'First answer.',
+        citations: [], createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    service.sendMessage('Second question.');
+
+    const req = httpMock.expectOne(`${API}/chat`);
+    const body = req.request.body;
+    expect(body.sessionId).toBe('existing-session');
+    expect(body.history).toHaveSize(2);
+    expect(body.history[0].role).toBe('User');
+    expect(body.history[1].role).toBe('Assistant');
+    req.flush(makeMockResponse('existing-session'));
+  });
+
+  it('sendMessage should remove placeholder and set error signal on HTTP error', () => {
+    service.startNewConversation(['doc-1']);
+    service.sendMessage('Failing question');
+
+    const req = httpMock.expectOne(`${API}/chat`);
+    req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
+
+    // Placeholder removed — no fabricated answer
+    expect(service.messages()).toHaveSize(1); // only user message remains
+    expect(service.messages()[0].role).toBe('user');
+    expect(service.loading()).toBe(false);
+    expect(service.streamingMessageId()).toBeNull();
+    expect(service.error()).toBeTruthy();
+  });
+
+  it('ask should POST to /chat and return ChatResponse observable', () => {
+    const request = {
+      sessionId: EMPTY_SESSION_ID,
+      documentIds: ['doc-1'],
+      message: 'Question',
+      history: [],
+    };
+    service.ask(request).subscribe((response) => {
+      expect(response.answer).toBe('This is the AI answer.');
+      expect(response.citations).toHaveSize(1);
+      expect(response.sessionId).toBeTruthy();
     });
 
-    it('should resolve assistant message with citations on HTTP success', () => {
-      const id = setupActiveSession();
-      service.sendMessage('What are the payment terms?');
-
-      httpMock.expectOne(`${API}/chat/sessions/${id}/messages`).flush({
-        messageId: 'ai-resp-1',
-        content: 'Payment is due net-30.',
-        citations: [
-          { documentName: 'Test.pdf', pageNumber: 4, paragraphRef: '§5.2', confidenceScore: 0.96 },
-        ],
-        createdAt: new Date().toISOString(),
-      });
-
-      const msgs = service.messages();
-      expect(msgs[1].id).toBe('ai-resp-1');
-      expect(msgs[1].content).toBe('Payment is due net-30.');
-      expect(msgs[1].citations).toHaveSize(1);
-      expect(msgs[1].citations[0].confidenceScore).toBe(0.96);
-      expect(msgs[1].isStreaming).toBe(false);
-      expect(service.loading()).toBe(false);
-      expect(service.streamingMessageId()).toBeNull();
-    });
-
-    it('should fall back to cited mock answer after HTTP error', fakeAsync(() => {
-      const id = setupActiveSession();
-      service.sendMessage('What are the risks?');
-
-      httpMock.expectOne(`${API}/chat/sessions/${id}/messages`).error(new ProgressEvent('error'));
-
-      tick(1500); // advance RxJS delay(1500) in mock fallback
-
-      const msgs = service.messages();
-      expect(msgs).toHaveSize(2);
-      expect(msgs[1].role).toBe('assistant');
-      expect(msgs[1].content.length).toBeGreaterThan(0);
-      expect(msgs[1].citations.length).toBeGreaterThan(0);
-      expect(msgs[1].isStreaming).toBe(false);
-      expect(service.loading()).toBe(false);
-      expect(service.streamingMessageId()).toBeNull();
-    }));
+    const req = httpMock.expectOne(`${API}/chat`);
+    expect(req.request.method).toBe('POST');
+    req.flush(makeMockResponse('returned-session-id'));
   });
 });

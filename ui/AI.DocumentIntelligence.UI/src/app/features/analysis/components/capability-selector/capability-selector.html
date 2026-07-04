@@ -1,0 +1,62 @@
+<div class="capability-selector">
+
+  <!-- Capability grid -->
+  <div class="capability-grid" role="radiogroup" aria-label="Select analysis capability">
+    @for (option of options; track option.value) {
+      <button
+        class="capability-card"
+        [class.capability-card--selected]="selected() === option.value"
+        role="radio"
+        [attr.aria-checked]="selected() === option.value"
+        [attr.aria-label]="option.label + ': ' + option.description"
+        (click)="selectCapability(option.value)"
+      >
+        <div class="capability-card__icon-wrap" aria-hidden="true">
+          <mat-icon>{{ option.icon }}</mat-icon>
+        </div>
+        <div class="capability-card__body">
+          <span class="capability-card__label">{{ option.label }}</span>
+          <span class="capability-card__desc">{{ option.description }}</span>
+        </div>
+        @if (selected() === option.value) {
+          <mat-icon class="capability-card__check" aria-hidden="true">check_circle</mat-icon>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Custom question input — visible only when Custom Q&A is selected -->
+  @if (isCustom) {
+    <div class="custom-question-panel" aria-live="polite">
+      <mat-form-field appearance="outline" class="custom-question-field">
+        <mat-label>Your question</mat-label>
+        <input
+          matInput
+          type="text"
+          [value]="customQuestion()"
+          placeholder="e.g. What are the key risks in this contract?"
+          aria-label="Enter your custom question"
+          (input)="onCustomQuestionInput($event)"
+        />
+      </mat-form-field>
+
+      <!-- Example queries -->
+      <div class="example-queries">
+        <span class="example-queries__label">Example queries:</span>
+        <div class="example-queries__chips" role="list">
+          @for (query of exampleQueries; track query) {
+            <button
+              class="query-chip"
+              role="listitem"
+              [attr.aria-label]="'Use example query: ' + query"
+              (click)="useExampleQuery(query)"
+            >
+              {{ query }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

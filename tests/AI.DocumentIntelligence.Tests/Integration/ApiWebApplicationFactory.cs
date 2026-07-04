@@ -125,7 +125,7 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     /// <summary>
     /// Mints a signed JWT that the test API will accept, with the given role.
     /// </summary>
-    public string MintToken(User user)
+    public static string MintToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

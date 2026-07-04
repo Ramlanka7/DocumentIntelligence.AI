@@ -26,7 +26,7 @@ internal sealed partial class DatabaseHealthCheck(
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             return HealthCheckResult.Degraded(
-                "Database connection string is not configured (pending T02 — EF Core persistence).");
+                "Database connection string is not configured.");
         }
 
         try

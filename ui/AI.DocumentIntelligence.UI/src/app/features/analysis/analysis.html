@@ -1,0 +1,115 @@
+<div class="analysis-page">
+
+  <!-- Page header -->
+  <header class="analysis-header">
+    <div class="analysis-header__icon" aria-hidden="true">
+      <mat-icon>insights</mat-icon>
+    </div>
+    <div class="analysis-header__text">
+      <h1 class="analysis-header__title">Document Analysis</h1>
+      <p class="analysis-header__subtitle">
+        Upload up to 4 documents and select an AI capability to extract structured insights
+        with source citations.
+      </p>
+    </div>
+  </header>
+
+  <!-- Loading state -->
+  @if (service.loading()) {
+    <div class="loading-overlay" role="status" aria-live="polite" aria-label="Running AI analysis">
+      <mat-progress-bar mode="indeterminate" aria-label="Analysis in progress" />
+      <div class="loading-message">
+        <mat-icon aria-hidden="true">smart_toy</mat-icon>
+        <p>AI is analysing your documents&hellip; This may take a moment.</p>
+      </div>
+    </div>
+  }
+
+  <!-- Error banner -->
+  @if (service.error()) {
+    <div
+      class="error-banner"
+      role="alert"
+      aria-live="assertive"
+      [class.error-banner--forbidden]="service.forbidden()"
+    >
+      <mat-icon aria-hidden="true">
+        {{ service.forbidden() ? 'lock' : 'error_outline' }}
+      </mat-icon>
+      <span>{{ service.error() }}</span>
+      <button
+        mat-icon-button
+        aria-label="Dismiss error"
+        class="error-banner__close"
+        (click)="dismissError()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Results view -->
+  @if (service.result(); as result) {
+    <app-analysis-results [result]="result" (newAnalysis)="reset()" />
+  } @else if (!service.loading()) {
+
+    <!-- Setup form -->
+    <div class="analysis-setup">
+
+      <!-- Step 1: Upload -->
+      <section class="setup-section" aria-labelledby="upload-heading">
+        <h2 id="upload-heading" class="setup-section__title">
+          <span class="setup-step" aria-hidden="true">1</span>
+          Upload Documents
+        </h2>
+        <app-analysis-upload
+          [files]="files()"
+          [analysisFiles]="service.analysisFiles()"
+          (filesChange)="onFilesChange($event)"
+          (validationError)="service.setError($event)"
+        />
+      </section>
+
+      <!-- Step 2: Select capability -->
+      <section class="setup-section" aria-labelledby="capability-heading">
+        <h2 id="capability-heading" class="setup-section__title">
+          <span class="setup-step" aria-hidden="true">2</span>
+          Choose Analysis Capability
+        </h2>
+        <app-capability-selector
+          [selected]="selectedCapability()"
+          [customQuestion]="customQuestion()"
+          (selectedChange)="onCapabilityChange($event)"
+          (customQuestionChange)="onCustomQuestionChange($event)"
+        />
+      </section>
+
+      <!-- Submit -->
+      <div class="setup-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          class="analyse-btn"
+          [disabled]="!canAnalyse()"
+          (click)="startAnalysis()"
+          aria-label="Run AI analysis on the uploaded documents"
+        >
+          <mat-icon>insights</mat-icon>
+          Analyse Documents
+        </button>
+
+        <p class="setup-hint" aria-live="polite">
+          @if (files().length === 0) {
+            Upload at least 1 document to enable analysis
+          } @else if (selectedCapability() === 'CustomQuestion' && customQuestion().trim().length === 0) {
+            Enter your custom question to enable analysis
+          } @else {
+            {{ files().length }} document{{ files().length !== 1 ? 's' : '' }} ready &mdash; click Analyse to start
+          }
+        </p>
+      </div>
+
+    </div>
+  }
+
+</div>

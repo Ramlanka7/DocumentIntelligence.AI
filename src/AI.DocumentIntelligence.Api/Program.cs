@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using AI.DocumentIntelligence.Api.Infrastructure;
 using AI.DocumentIntelligence.Api.Middleware;
@@ -25,7 +26,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddSerilogLogging();
 
 // ---- Core MVC / OpenAPI ----
-builder.Services.AddControllers();
+// Keep the "Async" suffix in action names so that cross-action link generation
+// (CreatedAtAction(nameof(...Async))) resolves correctly instead of throwing at runtime.
+builder.Services
+    .AddControllers(options => options.SuppressAsyncSuffixInActionNames = false)
+    // Serialize/deserialize enums by their string names so the Angular client can send and read
+    // enum values as strings (e.g. chat AiRole, DifferenceType, statuses) instead of magic integers.
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -79,7 +87,7 @@ builder.WebHost.ConfigureKestrel(opts =>
 // ---- Application + Infrastructure + Persistence ----
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddPersistence();
+builder.Services.AddPersistence(builder.Configuration);
 
 // ---- OpenTelemetry (traces + metrics) ----
 // Exporters (OTLP, Azure Monitor) activate only when their config is present.

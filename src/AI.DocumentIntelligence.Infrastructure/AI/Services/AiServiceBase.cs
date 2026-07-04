@@ -27,11 +27,13 @@ internal abstract partial class AiServiceBase
     };
 
     private readonly ISearchService _searchService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger _logger;
 
     /// <summary>The active AI provider (injected, selected by config).</summary>
     protected IAIProvider Provider { get; }
+
+    /// <summary>The unit of work for persistence operations (shared with derived classes).</summary>
+    protected IUnitOfWork UnitOfWork { get; }
 
     protected AiServiceBase(
         IAIProvider provider,
@@ -41,7 +43,7 @@ internal abstract partial class AiServiceBase
     {
         Provider = provider;
         _searchService = searchService;
-        _unitOfWork = unitOfWork;
+        UnitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -104,10 +106,11 @@ internal abstract partial class AiServiceBase
     }
 
     /// <summary>
-    /// Persists an <see cref="AiUsageMetric"/>. Failures are logged and swallowed so that AI
-    /// operations continue even while the Persistence layer is a stub (T02 not yet complete).
+    /// Enqueues an <see cref="AiUsageMetric"/> into the current Unit of Work without committing.
+    /// The caller is responsible for calling <see cref="IUnitOfWork.SaveChangesAsync"/> to persist
+    /// both the session completion and the metric atomically. Failures are logged and swallowed.
     /// </summary>
-    protected async Task TrackUsageAsync(
+    protected async Task EnlistUsageMetricAsync(
         Guid userId,
         string operationType,
         Application.Contracts.AI.TokenUsage contractUsage,
@@ -125,9 +128,7 @@ internal abstract partial class AiServiceBase
             var metric = AiUsageMetric.Create(
                 userId, operationType, domainUsage, processingTime, sessionId);
 
-            var repo = _unitOfWork.Repository<AiUsageMetric>();
-            await repo.AddAsync(metric, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await UnitOfWork.Repository<AiUsageMetric>().AddAsync(metric, cancellationToken);
         }
         catch (Exception ex)
         {

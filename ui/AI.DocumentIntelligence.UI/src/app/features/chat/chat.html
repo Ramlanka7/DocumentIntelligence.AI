@@ -21,16 +21,6 @@
         <h3 class="new-session-form__title">New Chat Session</h3>
 
         <mat-form-field appearance="outline" class="new-session-form__field">
-          <mat-label>Session title (optional)</mat-label>
-          <input
-            matInput
-            [value]="newSessionTitle()"
-            (input)="onTitleInput($event)"
-            placeholder="e.g. Contract Review Q4"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="new-session-form__field">
           <mat-label>Document IDs (comma-separated)</mat-label>
           <input
             matInput
@@ -38,12 +28,12 @@
             (input)="onDocsInput($event)"
             placeholder="doc-001, doc-002"
           />
-          <mat-hint>Enter uploaded document IDs to use as context</mat-hint>
+          <mat-hint>Enter uploaded document IDs to ground this conversation</mat-hint>
         </mat-form-field>
 
         <div class="new-session-form__actions">
           <button mat-stroked-button (click)="cancelNewSession()">Cancel</button>
-          <button mat-flat-button color="primary" (click)="createSession()">Create</button>
+          <button mat-flat-button color="primary" (click)="createSession()">Start Chat</button>
         </div>
       </div>
     } @else {
@@ -72,10 +62,10 @@
         </button>
         <div class="chat-page__header-info">
           <h2 class="chat-page__session-title">{{ session.title }}</h2>
-          @if (session.documentNames.length > 0) {
+          @if (session.documentIds.length > 0) {
             <div class="chat-page__context-docs">
               <mat-icon aria-hidden="true">description</mat-icon>
-              <span>{{ session.documentNames.join(', ') }}</span>
+              <span>{{ session.documentIds.length }} document{{ session.documentIds.length === 1 ? '' : 's' }}</span>
             </div>
           }
         </div>
