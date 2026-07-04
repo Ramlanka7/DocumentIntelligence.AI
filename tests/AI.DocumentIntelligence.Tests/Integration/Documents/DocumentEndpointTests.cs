@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using AI.DocumentIntelligence.Domain.ValueObjects;
-using AI.DocumentIntelligence.Domain.Enums;
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Domain.Enums;
+using AI.DocumentIntelligence.Domain.ValueObjects;
 using FluentAssertions;
 
 namespace AI.DocumentIntelligence.Tests.Integration.Documents;
