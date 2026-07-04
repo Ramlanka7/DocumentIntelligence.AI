@@ -1,33 +1,55 @@
-## Production override. Use alongside the base file:
-##   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+## Production override.  Use alongside the base file:
+##   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d api frontend
 ##
-## Compose override files merge with the base file rather than replace it, so
-## `postgres`/`azurite` from docker-compose.yml are still defined here. In a
-## real production deployment those managed-service equivalents (Azure
-## Database for PostgreSQL with pgvector, Azure Blob Storage, Azure AI Search)
-## are provisioned outside compose entirely — this override only tightens the
-## `api`/`frontend` services and should be paired with a deploy target
-## (Container Apps / AKS manifest, see docs/DEPLOYMENT.md) that never runs the
-## local-only services at all.
+## Only the api and frontend services are started with the prod overlay.
+## Explicitly naming the services on the command line (api frontend) ensures
+## postgres, azurite, and migrate — which are local-dev services — do not start.
+## In production, those roles are fulfilled by managed Azure services:
+##   DB    → Azure Database for PostgreSQL Flexible Server (with pgvector)
+##   Blob  → Azure Blob Storage
+##   Search→ Azure AI Search
+##
+## All secret values must come from the host environment or a secrets manager
+## (Azure Key Vault, Docker Swarm secrets, Kubernetes Secrets).
+## NEVER hard-code secrets in this file or commit them to the repo.
 
 name: ai-document-intelligence
 
 services:
+  # ---- API (production overrides) -----------------------------------------
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     restart: always
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     ports:
       - "8080:8080"
     deploy:
+      replicas: 2
       resources:
         limits:
           cpus: "1.0"
           memory: 1g
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    # In production the healthcheck start_period is longer to allow
+    # migrations / warm-up before traffic is routed.
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
+  # ---- Frontend (production overrides) ------------------------------------
   frontend:
     build:
       context: ./ui/AI.DocumentIntelligence.UI
@@ -36,7 +58,21 @@ services:
     ports:
       - "80:8080"
     deploy:
+      replicas: 2
       resources:
         limits:
           cpus: "0.5"
           memory: 256m
+        reservations:
+          cpus: "0.1"
+          memory: 64m
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
