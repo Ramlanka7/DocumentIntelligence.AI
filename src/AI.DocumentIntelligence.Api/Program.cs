@@ -10,11 +10,13 @@ using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Infrastructure;
 using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
+using AI.DocumentIntelligence.Persistence.Context;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
@@ -67,9 +69,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// ---- CORS for Angular dev server ----
+// ---- CORS — origins loaded from config so production can restrict to the real hostname ----
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? ["http://localhost:4200"];
+
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
-    policy.WithOrigins("http://localhost:4200")
+    policy.WithOrigins(allowedOrigins)
           .AllowAnyHeader()
           .AllowAnyMethod()));
 
@@ -190,6 +196,18 @@ builder.Services
     });
 
 var app = builder.Build();
+
+// ---- Database migration ----
+// Running migrations automatically can be convenient in dev, but in production it is often
+// preferable to run migrations as a separate step to avoid concurrent startup migrations.
+var dbConnectionString = app.Configuration.GetConnectionString("DefaultConnection");
+var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
+if (autoMigrate && !string.IsNullOrWhiteSpace(dbConnectionString))
+{
+    using var migrationScope = app.Services.CreateScope();
+    var dbContext = migrationScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 // ---- Global exception handler (must be outermost) ----
 app.UseExceptionHandler();

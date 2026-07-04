@@ -18,14 +18,14 @@ namespace AI.DocumentIntelligence.Infrastructure.Export.Formatters;
 internal sealed class ExcelExportFormatter : IExportFormatter
 {
     // CA1861 — static readonly to avoid per-call allocation of constant arrays
-    private static readonly string[] s_keyFindingsHeader = { "#", "Title", "Detail", "Citations" };
-    private static readonly string[] s_risksHeader = { "#", "Title", "Severity", "Description", "Citations" };
-    private static readonly string[] s_recommendationsHeader = { "#", "Title", "Detail", "Citations" };
-    private static readonly string[] s_actionItemsHeader = { "#", "Description", "Owner", "Citations" };
-    private static readonly string[] s_differencesHeader = { "#", "Type", "Section", "Summary", "Before", "After", "Citations" };
-    private static readonly string[] s_sourcesHeader = { "#", "Document Name", "Page", "Paragraph Ref", "Confidence", "Snippet" };
-    private static readonly string[] s_emptySummaryRow = { string.Empty };
-    private static readonly string[] s_executiveSummaryLabelRow = { "Executive Summary" };
+    private static readonly string[] KeyFindingsHeader = { "#", "Title", "Detail", "Citations" };
+    private static readonly string[] RisksHeader = { "#", "Title", "Severity", "Description", "Citations" };
+    private static readonly string[] RecommendationsHeader = { "#", "Title", "Detail", "Citations" };
+    private static readonly string[] ActionItemsHeader = { "#", "Description", "Owner", "Citations" };
+    private static readonly string[] DifferencesHeader = { "#", "Type", "Section", "Summary", "Before", "After", "Citations" };
+    private static readonly string[] SourcesHeader = { "#", "Document Name", "Page", "Paragraph Ref", "Confidence", "Snippet" };
+    private static readonly string[] EmptySummaryRow = { string.Empty };
+    private static readonly string[] ExecutiveSummaryLabelRow = { "Executive Summary" };
 
     public ExportFormat Format => ExportFormat.Excel;
 
@@ -105,17 +105,17 @@ internal sealed class ExcelExportFormatter : IExportFormatter
             new[] { "Title", title },
             new[] { "Report Type", type },
             new[] { "Generated (UTC)", DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm") },
-            s_emptySummaryRow,
-            s_executiveSummaryLabelRow,
+            EmptySummaryRow,
+            ExecutiveSummaryLabelRow,
             new[] { summary },
-            s_emptySummaryRow,
+            EmptySummaryRow,
             new[] { "Total Sources", sourceCount.ToString() },
         };
     }
 
     private static List<string[]> BuildKeyFindingsRows(IReadOnlyList<KeyFinding> findings)
     {
-        var rows = new List<string[]> { s_keyFindingsHeader };
+        var rows = new List<string[]> { KeyFindingsHeader };
         for (var i = 0; i < findings.Count; i++)
         {
             var f = findings[i];
@@ -127,7 +127,7 @@ internal sealed class ExcelExportFormatter : IExportFormatter
 
     private static List<string[]> BuildRisksRows(IReadOnlyList<RiskItem> risks)
     {
-        var rows = new List<string[]> { s_risksHeader };
+        var rows = new List<string[]> { RisksHeader };
         for (var i = 0; i < risks.Count; i++)
         {
             var r = risks[i];
@@ -139,7 +139,7 @@ internal sealed class ExcelExportFormatter : IExportFormatter
 
     private static List<string[]> BuildRecommendationsRows(IReadOnlyList<Recommendation> recs)
     {
-        var rows = new List<string[]> { s_recommendationsHeader };
+        var rows = new List<string[]> { RecommendationsHeader };
         for (var i = 0; i < recs.Count; i++)
         {
             var r = recs[i];
@@ -151,7 +151,7 @@ internal sealed class ExcelExportFormatter : IExportFormatter
 
     private static List<string[]> BuildActionItemsRows(IReadOnlyList<ActionItem> items)
     {
-        var rows = new List<string[]> { s_actionItemsHeader };
+        var rows = new List<string[]> { ActionItemsHeader };
         for (var i = 0; i < items.Count; i++)
         {
             var item = items[i];
@@ -163,7 +163,7 @@ internal sealed class ExcelExportFormatter : IExportFormatter
 
     private static List<string[]> BuildDifferencesRows(IReadOnlyList<DocumentDifference> diffs)
     {
-        var rows = new List<string[]> { s_differencesHeader };
+        var rows = new List<string[]> { DifferencesHeader };
         for (var i = 0; i < diffs.Count; i++)
         {
             var d = diffs[i];
@@ -184,7 +184,7 @@ internal sealed class ExcelExportFormatter : IExportFormatter
 
     private static List<string[]> BuildSourcesRows(IReadOnlyList<Citation> sources)
     {
-        var rows = new List<string[]> { s_sourcesHeader };
+        var rows = new List<string[]> { SourcesHeader };
         for (var i = 0; i < sources.Count; i++)
         {
             var s = sources[i];
