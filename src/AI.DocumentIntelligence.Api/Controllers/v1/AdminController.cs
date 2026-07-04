@@ -1,5 +1,6 @@
 using AI.DocumentIntelligence.Api.Extensions;
 using AI.DocumentIntelligence.Application.Features.Admin.DeactivateUser;
+using AI.DocumentIntelligence.Application.Features.Admin.GetDashboardMetrics;
 using AI.DocumentIntelligence.Application.Features.Admin.GetUser;
 using AI.DocumentIntelligence.Application.Features.Admin.ListUsers;
 using AI.DocumentIntelligence.Application.Features.Admin.UpdateUserRole;
@@ -54,6 +55,24 @@ public sealed class AdminController(ISender sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new UpdateUserRoleCommand(id, request.Role), cancellationToken);
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Returns aggregated platform metrics for the admin dashboard.</summary>
+    [HttpGet("metrics")]
+    [ProducesResponseType(typeof(DashboardMetricsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetDashboardMetricsAsync(
+        [FromQuery] DateTimeOffset? dateFrom,
+        [FromQuery] DateTimeOffset? dateTo,
+        [FromQuery] string? operationType,
+        [FromQuery] Guid? userId,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetDashboardMetricsQuery(dateFrom, dateTo, operationType, userId);
+        var result = await sender.Send(query, cancellationToken);
         return result.ToActionResult(this);
     }
 

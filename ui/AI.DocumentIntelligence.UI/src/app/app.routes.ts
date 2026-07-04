@@ -24,7 +24,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: ALL_ROLES,
     loadComponent: () =>
-      import('./features/placeholder/analysis-placeholder').then((m) => m.AnalysisPlaceholder),
+      import('./features/analysis/analysis').then((m) => m.AnalysisComponent),
     title: 'Analysis',
   },
   {

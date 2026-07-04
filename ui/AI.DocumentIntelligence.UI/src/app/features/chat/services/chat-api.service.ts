@@ -1,144 +1,18 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { of, delay } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import {
-  ChatSession,
   ChatMessage,
-  CreateSessionRequest,
-  SendMessageResponse,
-  Citation,
+  ChatRequest,
+  ChatResponse,
+  ChatSession,
+  ChatSessionDetail,
+  ChatSessionSummary,
+  ChatTurn,
+  EMPTY_SESSION_ID,
 } from '../models/chat.models';
-
-// ── Mock data ──────────────────────────────────────────────────────────────────
-
-const MOCK_SESSIONS: ChatSession[] = [
-  {
-    id: 'session-001',
-    title: 'Vendor Contract Review Q4',
-    documentIds: ['doc-001', 'doc-002'],
-    documentNames: ['Vendor Agreement A.pdf', 'Vendor Agreement B.pdf'],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    messageCount: 8,
-  },
-  {
-    id: 'session-002',
-    title: 'Policy Compliance Analysis',
-    documentIds: ['doc-003'],
-    documentNames: ['IT Security Policy 2024.pdf'],
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    messageCount: 4,
-  },
-  {
-    id: 'session-003',
-    title: 'Procurement RFP Evaluation',
-    documentIds: ['doc-004', 'doc-005', 'doc-006'],
-    documentNames: ['RFP Response Alpha.pdf', 'RFP Response Beta.pdf', 'RFP Response Gamma.pdf'],
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    messageCount: 12,
-  },
-];
-
-function buildMockAnswer(question: string, session: ChatSession): SendMessageResponse {
-  const q = question.toLowerCase();
-  const docA = session.documentNames[0] ?? 'Document A.pdf';
-  const docB = session.documentNames[1] ?? 'Document B.pdf';
-
-  const baseCitations: Citation[] = [
-    {
-      documentName: docA,
-      pageNumber: 3,
-      paragraphRef: '§2.1',
-      confidenceScore: 0.94,
-    },
-    {
-      documentName: docB,
-      pageNumber: 5,
-      paragraphRef: '§3.4',
-      confidenceScore: 0.87,
-    },
-  ];
-
-  if (q.includes('payment')) {
-    return {
-      messageId: `msg-${Date.now()}`,
-      content:
-        'The payment terms outlined in the documents specify net-30 conditions with a 2% early payment discount for settlement within 10 days. Late payments are subject to a 1.5% monthly interest charge. Document A specifies payment by wire transfer only, while Document B allows ACH and check payments. Both documents require a valid purchase order number on all invoices.',
-      citations: [
-        { documentName: docA, pageNumber: 4, paragraphRef: '§5.2', confidenceScore: 0.96 },
-        { documentName: docB, pageNumber: 6, paragraphRef: '§5.1', confidenceScore: 0.91 },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  if (q.includes('risk')) {
-    return {
-      messageId: `msg-${Date.now()}`,
-      content:
-        'The identified risks across the documents include: (1) Force majeure clauses that may be triggered by supply chain disruptions; (2) Indemnification obligations that could expose the company to uncapped liability; (3) IP ownership ambiguities in co-development scenarios; (4) Data processing terms that may conflict with GDPR Article 28 requirements. The liability cap of $1M in Document B is double that of Document A ($500K), representing increased financial exposure.',
-      citations: [
-        { documentName: docA, pageNumber: 9, paragraphRef: '§8.3', confidenceScore: 0.89 },
-        { documentName: docB, pageNumber: 11, paragraphRef: '§9.1', confidenceScore: 0.92 },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  if (q.includes('summar') || q.includes('section 4')) {
-    return {
-      messageId: `msg-${Date.now()}`,
-      content:
-        'Section 4 covers the Scope of Services and Deliverables. It defines the primary deliverables as monthly status reports, quarterly business reviews, and an annual performance audit. The section also specifies service level agreements (SLAs) with 99.5% uptime guarantees and a maximum 4-hour response time for critical incidents. Penalties for SLA breaches are calculated at 2% of monthly fees per percentage point below the target.',
-      citations: [
-        { documentName: docA, pageNumber: 7, paragraphRef: '§4.1', confidenceScore: 0.98 },
-        { documentName: docA, pageNumber: 8, paragraphRef: '§4.3', confidenceScore: 0.95 },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  if (q.includes('pric') || q.includes('compar')) {
-    return {
-      messageId: `msg-${Date.now()}`,
-      content:
-        'Pricing comparison across documents: Document A proposes a fixed monthly retainer of $15,000 with additional T&M rates of $250/hr for out-of-scope work. Document B offers a tiered model starting at $12,000/month with volume discounts kicking in above 1,000 hours annually. Over a 3-year contract horizon, Document B is approximately 18% more cost-effective assuming current usage patterns. However, Document B includes fewer bundled services in the base tier.',
-      citations: [
-        { documentName: docA, pageNumber: 2, paragraphRef: '§3.1', confidenceScore: 0.97 },
-        { documentName: docB, pageNumber: 3, paragraphRef: '§3.2', confidenceScore: 0.93 },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  if (q.includes('vendor') || q.includes('value') || q.includes('best')) {
-    return {
-      messageId: `msg-${Date.now()}`,
-      content:
-        'Based on a weighted value analysis across price, service breadth, SLA commitments, and contractual risk, Vendor B (represented in Document B) offers the best overall value. While the base price is slightly lower and volume discounts are more aggressive, the key differentiators are a broader service catalog, stronger data security guarantees (ISO 27001 certified), and a 99.9% uptime SLA vs 99.5% for Vendor A. The main trade-off is a longer minimum contract term (24 months vs 12 months).',
-      citations: [
-        { documentName: docA, pageNumber: 1, paragraphRef: '§1.2', confidenceScore: 0.88 },
-        { documentName: docB, pageNumber: 2, paragraphRef: '§1.3', confidenceScore: 0.91 },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  // Generic fallback answer
-  return {
-    messageId: `msg-${Date.now()}`,
-    content:
-      `Based on the documents in this session, I've analyzed the content to answer your question. The documents cover contractual terms, service obligations, and compliance requirements. Key sections relevant to your query are found throughout the documents. For more specific information, please refine your question or refer to the cited passages below.`,
-    citations: baseCitations,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-// ── Service ────────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
 export class ChatApiService {
@@ -163,83 +37,101 @@ export class ChatApiService {
   readonly error = this._error.asReadonly();
   readonly streamingMessageId = this._streamingMessageId.asReadonly();
 
+  /**
+   * Load all sessions for the current user.
+   * GET /api/v1/chat/sessions → ChatSessionSummaryDto[]
+   */
   loadSessions(): void {
     this._sessionsLoading.set(true);
     this._error.set(null);
 
-    this.http.get<ChatSession[]>(`${this.apiBase}/chat/sessions`).subscribe({
-      next: (sessions) => {
-        this._sessions.set(sessions);
+    this.http.get<ChatSessionSummary[]>(`${this.apiBase}/chat/sessions`).subscribe({
+      next: (summaries) => {
+        this._sessions.set(summaries.map(this.summaryToSession));
         this._sessionsLoading.set(false);
       },
-      error: () => {
-        // Backend unavailable — use mock sessions
-        this._sessions.set([...MOCK_SESSIONS]);
+      error: (err: HttpErrorResponse) => {
         this._sessionsLoading.set(false);
+        if (err.status === 403) {
+          this._error.set('You do not have permission to view chat sessions.');
+        } else {
+          this._error.set('Failed to load chat sessions. Please try again.');
+        }
       },
     });
   }
 
+  /**
+   * Load a single session with its full message history.
+   * GET /api/v1/chat/sessions/{id} → ChatSessionDetailDto
+   */
   loadSession(id: string): void {
     this._loading.set(true);
     this._error.set(null);
 
-    const session = this._sessions().find((s) => s.id === id) ?? null;
-    this._activeSession.set(session);
-
-    this.http.get<ChatMessage[]>(`${this.apiBase}/chat/sessions/${id}/messages`).subscribe({
-      next: (messages) => {
-        this._messages.set(messages);
-        this._loading.set(false);
-      },
-      error: () => {
-        // Mock fallback: return empty history
-        this._messages.set([]);
-        this._loading.set(false);
-      },
-    });
-  }
-
-  createSession(req: CreateSessionRequest): void {
-    this._sessionsLoading.set(true);
-    this._error.set(null);
-
-    this.http.post<ChatSession>(`${this.apiBase}/chat/sessions`, req).subscribe({
-      next: (session) => {
-        this._sessions.update((list) => [session, ...list]);
+    this.http.get<ChatSessionDetail>(`${this.apiBase}/chat/sessions/${id}`).subscribe({
+      next: (detail) => {
+        const session = this._sessions().find((s) => s.id === id) ?? null;
         this._activeSession.set(session);
-        this._messages.set([]);
-        this._sessionsLoading.set(false);
+        this._messages.set(
+          detail.messages.map((m) => ({
+            id: m.id,
+            sessionId: id,
+            role: m.role.toLowerCase() === 'assistant' ? 'assistant' : 'user',
+            content: m.content,
+            citations: m.citations.map((c) => ({
+              documentId: '',
+              documentName: c.documentName,
+              pageNumber: c.page,
+              paragraphReference: c.paragraph,
+              snippet: '',
+              confidenceScore: c.confidence,
+            })),
+            createdAt: m.createdAt,
+          })),
+        );
+        this._loading.set(false);
       },
-      error: () => {
-        // Mock fallback: create local session
-        const mockSession: ChatSession = {
-          id: `session-${Date.now()}`,
-          title: req.title ?? 'New Chat Session',
-          documentIds: req.documentIds,
-          documentNames: req.documentIds.map((id, i) => `Document ${i + 1}.pdf`),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messageCount: 0,
-        };
-        this._sessions.update((list) => [mockSession, ...list]);
-        this._activeSession.set(mockSession);
-        this._messages.set([]);
-        this._sessionsLoading.set(false);
+      error: (err: HttpErrorResponse) => {
+        this._loading.set(false);
+        if (err.status === 404) {
+          this._error.set('Chat session not found.');
+        } else if (err.status === 403) {
+          this._error.set('You do not have permission to view this session.');
+        } else {
+          this._error.set('Failed to load session history. Please try again.');
+        }
       },
     });
   }
 
-  sendMessage(content: string): void {
+  /**
+   * Send a message in a chat session.
+   * POST /api/v1/chat — body: { sessionId, documentIds, message, history }
+   *
+   * For the first message in a new conversation supply sessionId = EMPTY_SESSION_ID.
+   * The response returns the real sessionId for subsequent turns.
+   */
+  sendMessage(content: string, documentIds: string[] = []): void {
     const session = this._activeSession();
-    if (!session) return;
-
     this._error.set(null);
+
+    const isNewSession = session === null || session.id === EMPTY_SESSION_ID;
+    const sessionId = session?.id ?? EMPTY_SESSION_ID;
+    const docs = session?.documentIds ?? documentIds;
+
+    // Build history from current messages (exclude any still-streaming placeholder)
+    const history: ChatTurn[] = this._messages()
+      .filter((m) => !m.isStreaming)
+      .map((m) => ({
+        role: m.role === 'assistant' ? 'Assistant' : 'User',
+        content: m.content,
+      }));
 
     // Optimistically append user message
     const userMessage: ChatMessage = {
       id: `msg-user-${Date.now()}`,
-      sessionId: session.id,
+      sessionId,
       role: 'user',
       content,
       citations: [],
@@ -247,11 +139,11 @@ export class ChatApiService {
     };
     this._messages.update((msgs) => [...msgs, userMessage]);
 
-    // Add a placeholder streaming assistant message
+    // Streaming placeholder
     const placeholderId = `msg-assistant-${Date.now()}`;
     const placeholder: ChatMessage = {
       id: placeholderId,
-      sessionId: session.id,
+      sessionId,
       role: 'assistant',
       content: '',
       citations: [],
@@ -262,73 +154,125 @@ export class ChatApiService {
     this._streamingMessageId.set(placeholderId);
     this._loading.set(true);
 
-    this.http
-      .post<SendMessageResponse>(`${this.apiBase}/chat/sessions/${session.id}/messages`, {
-        sessionId: session.id,
-        content,
-      })
-      .subscribe({
-        next: (response) => {
-          this.resolveAssistantMessage(placeholderId, session.id, response);
-        },
-        error: () => {
-          // Mock fallback with realistic delay
-          of(buildMockAnswer(content, session))
-            .pipe(delay(1500))
-            .subscribe((mockResponse) => {
-              this.resolveAssistantMessage(placeholderId, session.id, mockResponse);
-            });
-        },
-      });
-  }
-
-  private resolveAssistantMessage(
-    placeholderId: string,
-    sessionId: string,
-    response: SendMessageResponse,
-  ): void {
-    const assistantMessage: ChatMessage = {
-      id: response.messageId,
+    const request: ChatRequest = {
       sessionId,
-      role: 'assistant',
-      content: response.content,
-      citations: response.citations,
-      createdAt: response.createdAt,
-      isStreaming: false,
+      documentIds: docs,
+      message: content,
+      history,
     };
 
-    this._messages.update((msgs) =>
-      msgs.map((m) => (m.id === placeholderId ? assistantMessage : m)),
-    );
+    this.http.post<ChatResponse>(`${this.apiBase}/chat`, request).subscribe({
+      next: (response) => {
+        const assistantMessage: ChatMessage = {
+          id: `msg-${response.sessionId}-${Date.now()}`,
+          sessionId: response.sessionId,
+          role: 'assistant',
+          content: response.answer,
+          citations: response.citations,
+          createdAt: new Date().toISOString(),
+          isStreaming: false,
+        };
 
-    // Update session message count
-    this._activeSession.update((s) =>
-      s?.id === sessionId
-        ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() }
-        : s,
-    );
-    this._sessions.update((list) =>
-      list.map((s) =>
-        s.id === sessionId
-          ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() }
-          : s,
-      ),
-    );
+        this._messages.update((msgs) =>
+          msgs.map((m) => (m.id === placeholderId ? assistantMessage : m)),
+        );
 
-    this._streamingMessageId.set(null);
-    this._loading.set(false);
+        if (isNewSession) {
+          // Backend assigned a real session ID — register the new session
+          const newSession: ChatSession = {
+            id: response.sessionId,
+            title: content.slice(0, 80),
+            documentIds: docs,
+            status: 'InProgress',
+            messageCount: 2,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          this._sessions.update((list) => [newSession, ...list.filter((s) => s.id !== EMPTY_SESSION_ID)]);
+          this._activeSession.set(newSession);
+        } else {
+          // Existing session — update counts
+          this._activeSession.update((s) =>
+            s !== null
+              ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() }
+              : s,
+          );
+          this._sessions.update((list) =>
+            list.map((s) =>
+              s.id === response.sessionId
+                ? { ...s, messageCount: s.messageCount + 2, updatedAt: new Date().toISOString() }
+                : s,
+            ),
+          );
+        }
+
+        this._streamingMessageId.set(null);
+        this._loading.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        // Remove streaming placeholder on error
+        this._messages.update((msgs) => msgs.filter((m) => m.id !== placeholderId));
+        this._streamingMessageId.set(null);
+        this._loading.set(false);
+
+        if (err.status === 403) {
+          this._error.set('You do not have permission to send messages.');
+        } else if (err.status === 400) {
+          this._error.set('Invalid message request. Please check your inputs.');
+        } else {
+          this._error.set('Failed to send message. Please try again.');
+        }
+      },
+    });
   }
 
+  /**
+   * Delete a chat session.
+   * DELETE /api/v1/chat/sessions/{id}
+   */
   deleteSession(id: string): void {
     this.http.delete(`${this.apiBase}/chat/sessions/${id}`).subscribe({
       next: () => {
         this.removeSessionLocally(id);
       },
-      error: () => {
-        // Mock fallback: remove from local signal
-        this.removeSessionLocally(id);
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 404) {
+          // Already gone — clean up locally
+          this.removeSessionLocally(id);
+        } else if (err.status === 403) {
+          this._error.set('You do not have permission to delete this session.');
+        } else {
+          this._error.set('Failed to delete session. Please try again.');
+        }
       },
     });
+  }
+
+  /**
+   * Start a new conversation without creating a server-side session upfront.
+   * The real sessionId is returned on the first POST /chat call.
+   */
+  startNewConversation(documentIds: string[]): void {
+    this._activeSession.set(null);
+    this._messages.set([]);
+    this._error.set(null);
+
+    // Store documentIds in a transient session stub so sendMessage can pick them up
+    const stub: ChatSession = {
+      id: EMPTY_SESSION_ID,
+      title: 'New Conversation',
+      documentIds,
+      status: 'Pending',
+      messageCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: null,
+    };
+    this._activeSession.set(stub);
+  }
+
+  /** Raw HTTP call — exposed for testing and composability. */
+  ask(request: ChatRequest): Observable<ChatResponse> {
+    return this.http.post<ChatResponse>(`${this.apiBase}/chat`, request);
   }
 
   private removeSessionLocally(id: string): void {
@@ -337,6 +281,18 @@ export class ChatApiService {
       this._activeSession.set(null);
       this._messages.set([]);
     }
+  }
+
+  private summaryToSession(dto: ChatSessionSummary): ChatSession {
+    return {
+      id: dto.id,
+      title: dto.title,
+      documentIds: dto.documentIds,
+      status: dto.status,
+      messageCount: dto.messageCount,
+      createdAt: dto.createdAt,
+      updatedAt: dto.updatedAt,
+    };
   }
 
   setError(msg: string | null): void {

@@ -18,6 +18,7 @@ using AI.DocumentIntelligence.Infrastructure.Export;
 using AI.DocumentIntelligence.Infrastructure.Export.Formatters;
 using AI.DocumentIntelligence.Infrastructure.HealthChecks;
 using AI.DocumentIntelligence.Infrastructure.Storage;
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -41,7 +42,25 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IFileUploadValidator, FileUploadValidator>();
         services.AddScoped<IAuditService, AuditService>();
-        services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+        // ---- File storage: provider selection (AzureStorage:ConnectionString) ----
+        // When AzureStorage:ConnectionString is non-empty, AzureBlobFileStorage is used (production/Azurite).
+        // When it is absent or empty, LocalFileStorage is used instead (development default).
+        // To switch: set AzureStorage__ConnectionString in environment / appsettings / user-secrets.
+        // docker-compose.yml wires this to the Azurite dev connection string automatically.
+        services.Configure<BlobStorageOptions>(
+            configuration.GetSection(BlobStorageOptions.SectionName));
+
+        var blobConnectionString = configuration[$"{BlobStorageOptions.SectionName}:ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(blobConnectionString))
+        {
+            services.AddSingleton(_ => new BlobServiceClient(blobConnectionString));
+            services.AddSingleton<IFileStorage, AzureBlobFileStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+        }
 
         // ---- Document processors (T04) ----
         services.AddTransient<IDocumentProcessor, PdfDocumentProcessor>();

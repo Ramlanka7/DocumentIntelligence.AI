@@ -1,0 +1,339 @@
+<div class="analysis-results" role="region" aria-label="Analysis results">
+
+  <!-- Summary statistics bar -->
+  <div class="results-summary" role="region" aria-label="Analysis summary statistics">
+    <div class="results-summary__stat">
+      <span class="results-summary__count results-summary__count--findings">
+        {{ result().keyFindings.length }}
+      </span>
+      <span class="results-summary__label">Key Findings</span>
+    </div>
+    <div class="results-summary__stat">
+      <span class="results-summary__count results-summary__count--risks">
+        {{ result().risks.length }}
+      </span>
+      <span class="results-summary__label">Risks</span>
+    </div>
+    <div class="results-summary__stat">
+      <span class="results-summary__count results-summary__count--actions">
+        {{ result().actionItems.length }}
+      </span>
+      <span class="results-summary__label">Action Items</span>
+    </div>
+    <div class="results-summary__stat">
+      <span class="results-summary__count">{{ result().sources.length }}</span>
+      <span class="results-summary__label">Citations</span>
+    </div>
+    <div class="results-summary__actions">
+      <button
+        mat-stroked-button
+        (click)="newAnalysis.emit()"
+        aria-label="Start a new analysis"
+      >
+        <mat-icon>restart_alt</mat-icon>
+        New Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab navigation -->
+  <nav class="results-tabs" role="tablist" aria-label="Analysis result sections">
+    @for (tab of tabs; track trackTab($index, tab); let i = $index) {
+      <button
+        class="results-tab"
+        [class.results-tab--active]="activeTab() === tab.id"
+        role="tab"
+        [attr.aria-selected]="activeTab() === tab.id"
+        [attr.aria-controls]="'panel-' + tab.id"
+        [id]="'tab-' + tab.id"
+        [tabindex]="activeTab() === tab.id ? 0 : -1"
+        (click)="setTab(tab.id)"
+        (keydown)="onTabKeydown($event, i)"
+      >
+        <mat-icon aria-hidden="true">{{ tab.icon }}</mat-icon>
+        <span>{{ tab.label }}</span>
+      </button>
+    }
+  </nav>
+
+  <!-- Tab panels -->
+  <div class="results-content">
+
+    <!-- Executive Summary -->
+    @if (activeTab() === 'summary') {
+      <section
+        id="panel-summary"
+        role="tabpanel"
+        aria-labelledby="tab-summary"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">summarize</mat-icon>
+          Executive Summary
+        </h2>
+        <div class="prose-block" aria-label="Executive summary">
+          <p>{{ result().executiveSummary }}</p>
+        </div>
+      </section>
+    }
+
+    <!-- Key Findings -->
+    @if (activeTab() === 'findings') {
+      <section
+        id="panel-findings"
+        role="tabpanel"
+        aria-labelledby="tab-findings"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">search_insights</mat-icon>
+          Key Findings
+        </h2>
+
+        @if (result().keyFindings.length === 0) {
+          <p class="empty-state">No key findings were identified for this analysis.</p>
+        } @else {
+          <div class="findings-list">
+            @for (finding of result().keyFindings; track trackFinding($index, finding)) {
+              <div class="finding-card" role="article" [attr.aria-label]="'Finding: ' + finding.title">
+                <h3 class="finding-card__title">
+                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                  {{ finding.title }}
+                </h3>
+                <p class="finding-card__detail">{{ finding.detail }}</p>
+                @if (finding.citations.length > 0) {
+                  <div class="inline-citations" aria-label="Supporting citations">
+                    @for (citation of finding.citations; track trackCitation($index, citation)) {
+                      <span
+                        class="citation-chip"
+                        role="note"
+                        [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphReference + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                      >
+                        <mat-icon aria-hidden="true">description</mat-icon>
+                        {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Risks Identified -->
+    @if (activeTab() === 'risks') {
+      <section
+        id="panel-risks"
+        role="tabpanel"
+        aria-labelledby="tab-risks"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          Risks Identified
+        </h2>
+
+        @if (result().risks.length === 0) {
+          <p class="empty-state">No risks were identified for this analysis.</p>
+        } @else {
+          <div class="risks-list">
+            @for (risk of result().risks; track trackRisk($index, risk)) {
+              <div
+                class="risk-card"
+                role="article"
+                [attr.aria-label]="'Risk: ' + risk.title + ', severity: ' + risk.severity"
+              >
+                <div class="risk-card__header">
+                  <h3 class="risk-card__title">{{ risk.title }}</h3>
+                  <span
+                    class="severity-badge"
+                    [class]="getSeverityClass(risk.severity)"
+                    [attr.aria-label]="'Severity: ' + risk.severity"
+                  >
+                    {{ risk.severity }}
+                  </span>
+                </div>
+                <p class="risk-card__desc">{{ risk.description }}</p>
+                @if (risk.citations.length > 0) {
+                  <div class="inline-citations" aria-label="Supporting citations">
+                    @for (citation of risk.citations; track trackCitation($index, citation)) {
+                      <span
+                        class="citation-chip"
+                        role="note"
+                        [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphReference + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                      >
+                        <mat-icon aria-hidden="true">description</mat-icon>
+                        {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Recommendations -->
+    @if (activeTab() === 'recommendations') {
+      <section
+        id="panel-recommendations"
+        role="tabpanel"
+        aria-labelledby="tab-recommendations"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">lightbulb</mat-icon>
+          Recommendations
+        </h2>
+
+        @if (result().recommendations.length === 0) {
+          <p class="empty-state">No recommendations were generated for this analysis.</p>
+        } @else {
+          <ol class="recommendations-list" aria-label="AI-generated recommendations">
+            @for (rec of result().recommendations; track trackRecommendation($index, rec)) {
+              <li class="recommendation-item">
+                <span class="recommendation-item__number" aria-hidden="true">{{ $index + 1 }}</span>
+                <div class="recommendation-item__body">
+                  <p class="recommendation-item__title">{{ rec.title }}</p>
+                  <p class="recommendation-item__detail">{{ rec.detail }}</p>
+                  @if (rec.citations.length > 0) {
+                    <div class="inline-citations" aria-label="Supporting citations">
+                      @for (citation of rec.citations; track trackCitation($index, citation)) {
+                        <span
+                          class="citation-chip"
+                          role="note"
+                          [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                        >
+                          <mat-icon aria-hidden="true">description</mat-icon>
+                          {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    }
+
+    <!-- Action Items -->
+    @if (activeTab() === 'actions') {
+      <section
+        id="panel-actions"
+        role="tabpanel"
+        aria-labelledby="tab-actions"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">task_alt</mat-icon>
+          Action Items
+        </h2>
+
+        @if (result().actionItems.length === 0) {
+          <p class="empty-state">No action items were extracted from this analysis.</p>
+        } @else {
+          <ul class="action-items-list" aria-label="Action items">
+            @for (action of result().actionItems; track trackAction($index, action); let i = $index) {
+              <li class="action-item" role="article">
+                <div class="action-item__index" aria-hidden="true">{{ i + 1 }}</div>
+                <div class="action-item__body">
+                  <p class="action-item__desc">{{ action.description }}</p>
+                  @if (action.owner) {
+                    <span class="action-item__owner">
+                      <mat-icon aria-hidden="true">person</mat-icon>
+                      {{ action.owner }}
+                    </span>
+                  }
+                  @if (action.citations.length > 0) {
+                    <div class="inline-citations" aria-label="Supporting citations">
+                      @for (citation of action.citations; track trackCitation($index, citation)) {
+                        <span
+                          class="citation-chip"
+                          role="note"
+                          [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                        >
+                          <mat-icon aria-hidden="true">description</mat-icon>
+                          {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    <!-- Referenced Sources / Citations -->
+    @if (activeTab() === 'sources') {
+      <section
+        id="panel-sources"
+        role="tabpanel"
+        aria-labelledby="tab-sources"
+        tabindex="0"
+        class="tab-panel"
+      >
+        <h2 class="tab-panel__title">
+          <mat-icon aria-hidden="true">source</mat-icon>
+          Referenced Sources
+        </h2>
+
+        <p class="citations-intro">
+          All AI findings are grounded in the following source references extracted directly from the uploaded documents.
+        </p>
+
+        @if (result().sources.length === 0) {
+          <p class="empty-state">No source citations were produced for this analysis.</p>
+        } @else {
+          <div class="citations-grid" aria-label="Source citations">
+            @for (citation of result().sources; track trackCitation($index, citation)) {
+              <div
+                class="citation-card"
+                role="article"
+                [attr.aria-label]="'Citation from ' + citation.documentName + ', page ' + citation.pageNumber + ', paragraph ' + citation.paragraphReference + ', confidence ' + formatConfidence(citation.confidenceScore)"
+              >
+                <div class="citation-card__header">
+                  <mat-icon class="citation-card__doc-icon" aria-hidden="true">description</mat-icon>
+                  <span class="citation-card__doc">{{ citation.documentName }}</span>
+                  <span
+                    class="citation-card__confidence"
+                    [class.citation-card__confidence--high]="citation.confidenceScore >= 0.9"
+                    [class.citation-card__confidence--medium]="citation.confidenceScore >= 0.7 && citation.confidenceScore < 0.9"
+                    [class.citation-card__confidence--low]="citation.confidenceScore < 0.7"
+                    [attr.aria-label]="'Confidence score: ' + formatConfidence(citation.confidenceScore)"
+                  >
+                    {{ formatConfidence(citation.confidenceScore) }}
+                  </span>
+                </div>
+                <div class="citation-card__location">
+                  <span class="citation-card__page">Page {{ citation.pageNumber }}</span>
+                  <span class="citation-card__sep" aria-hidden="true">&bull;</span>
+                  <span class="citation-card__para">Paragraph {{ citation.paragraphReference }}</span>
+                </div>
+                @if (citation.snippet) {
+                  <blockquote class="citation-card__snippet">
+                    &ldquo;{{ citation.snippet }}&rdquo;
+                  </blockquote>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+  </div>
+</div>

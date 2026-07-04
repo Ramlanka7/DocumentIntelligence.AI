@@ -122,6 +122,12 @@ public static class DomainErrors
             Error.Validation("Upload.UnsupportedFileType", "One or more files have an unsupported or unrecognised file type.");
     }
 
+    public static class Auth
+    {
+        public static readonly Error Unauthenticated =
+            Error.Unauthorized("Auth.Unauthenticated", "Authentication is required to perform this operation.");
+    }
+
     public static class Token
     {
         public static readonly Error Invalid =

@@ -16,7 +16,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ComparisonTypeSelectorComponent {
-  readonly selected = input<ComparisonType>('side-by-side');
+  readonly selected = input<ComparisonType>('SideBySide');
   readonly selectedChange = output<ComparisonType>();
 
   protected readonly options: ComparisonTypeOption[] = COMPARISON_TYPE_OPTIONS;

@@ -15,7 +15,7 @@
       <span class="results-summary__label">Modified</span>
     </div>
     <div class="results-summary__stat">
-      <span class="results-summary__count">{{ result().citations.length }}</span>
+      <span class="results-summary__count">{{ result().sources.length }}</span>
       <span class="results-summary__label">Citations</span>
     </div>
     <div class="results-summary__actions">
@@ -68,7 +68,7 @@
       </section>
     }
 
-    <!-- Key Differences -->
+    <!-- Differences -->
     @if (activeTab() === 'differences') {
       <section
         id="panel-differences"
@@ -79,18 +79,18 @@
       >
         <h2 class="tab-panel__title">
           <mat-icon aria-hidden="true">compare_arrows</mat-icon>
-          Key Differences
+          Differences
         </h2>
-        <app-diff-viewer [entries]="result().keyDifferences" />
+        <app-diff-viewer [entries]="result().differences" />
       </section>
     }
 
     <!-- Risk Analysis -->
-    @if (activeTab() === 'risk') {
+    @if (activeTab() === 'risks') {
       <section
-        id="panel-risk"
+        id="panel-risks"
         role="tabpanel"
-        aria-labelledby="tab-risk"
+        aria-labelledby="tab-risks"
         tabindex="0"
         class="tab-panel"
       >
@@ -98,15 +98,34 @@
           <mat-icon aria-hidden="true">warning</mat-icon>
           Risk Analysis
         </h2>
-        <div class="risk-content">
-          <div class="risk-banner" role="alert">
-            <mat-icon aria-hidden="true">priority_high</mat-icon>
-            <span>Legal review recommended before execution</span>
-          </div>
-          <div class="risk-text" aria-label="Risk analysis">
-            <p>{{ result().riskAnalysis }}</p>
-          </div>
-        </div>
+        @if (result().risks.length === 0) {
+          <p class="tab-panel__empty">No risks identified.</p>
+        } @else {
+          <ol class="risks-list" aria-label="Identified risks">
+            @for (risk of result().risks; track risk.title) {
+              <li class="risk-item" [attr.data-severity]="risk.severity">
+                <div class="risk-item__header">
+                  <span class="risk-item__title">{{ risk.title }}</span>
+                  <span class="risk-item__severity badge" [attr.data-severity]="risk.severity">{{ risk.severity }}</span>
+                </div>
+                <p class="risk-item__description">{{ risk.description }}</p>
+                @if (risk.citations.length > 0) {
+                  <div class="risk-item__citations" aria-label="Supporting citations">
+                    @for (citation of risk.citations; track trackCitation($index, citation)) {
+                      <span
+                        class="citation-chip"
+                        role="note"
+                        [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphReference + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                      >
+                        {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                      </span>
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ol>
+        }
       </section>
     }
 
@@ -123,31 +142,34 @@
           <mat-icon aria-hidden="true">lightbulb</mat-icon>
           Recommendations
         </h2>
-        <ol class="recommendations-list" aria-label="AI-generated recommendations">
-          @for (rec of result().recommendations; track trackRecommendation($index, rec)) {
-            <li class="recommendation-item">
-              <span class="recommendation-item__number" aria-hidden="true">{{ $index + 1 }}</span>
-              <p class="recommendation-item__text">{{ rec }}</p>
-            </li>
-          }
-        </ol>
-      </section>
-    }
-
-    <!-- Detailed Change Log -->
-    @if (activeTab() === 'changelog') {
-      <section
-        id="panel-changelog"
-        role="tabpanel"
-        aria-labelledby="tab-changelog"
-        tabindex="0"
-        class="tab-panel"
-      >
-        <h2 class="tab-panel__title">
-          <mat-icon aria-hidden="true">history</mat-icon>
-          Detailed Change Log
-        </h2>
-        <app-diff-viewer [entries]="result().changeLog" [showHeader]="true" />
+        @if (result().recommendations.length === 0) {
+          <p class="tab-panel__empty">No recommendations available.</p>
+        } @else {
+          <ol class="recommendations-list" aria-label="AI-generated recommendations">
+            @for (rec of result().recommendations; track trackRecommendation($index, rec)) {
+              <li class="recommendation-item">
+                <span class="recommendation-item__number" aria-hidden="true">{{ $index + 1 }}</span>
+                <div class="recommendation-item__body">
+                  <strong class="recommendation-item__title">{{ rec.title }}</strong>
+                  <p class="recommendation-item__text">{{ rec.detail }}</p>
+                  @if (rec.citations.length > 0) {
+                    <div class="recommendation-item__citations">
+                      @for (citation of rec.citations; track trackCitation($index, citation)) {
+                        <span
+                          class="citation-chip"
+                          role="note"
+                          [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                        >
+                          {{ citation.documentName }} p.{{ citation.pageNumber }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
       </section>
     }
 
@@ -169,46 +191,56 @@
           <p>All AI findings are grounded in the following source references extracted from the uploaded documents.</p>
         </div>
 
-        <div class="citations-list" aria-label="Source citations">
-          @for (citation of result().citations; track trackCitation($index, citation)) {
-            <div class="citation-card" role="article" [attr.aria-label]="'Citation from ' + citation.documentName">
-              <div class="citation-card__header">
-                <mat-icon class="citation-card__icon" aria-hidden="true">description</mat-icon>
-                <span class="citation-card__doc">{{ citation.documentName }}</span>
-                <span
-                  class="citation-card__confidence"
-                  [class.citation-card__confidence--high]="citation.confidenceScore >= 0.9"
-                  [class.citation-card__confidence--medium]="citation.confidenceScore >= 0.7 && citation.confidenceScore < 0.9"
-                  [class.citation-card__confidence--low]="citation.confidenceScore < 0.7"
-                  [attr.aria-label]="'Confidence score: ' + formatConfidence(citation.confidenceScore)"
-                >
-                  {{ formatConfidence(citation.confidenceScore) }}
-                </span>
+        @if (result().sources.length === 0) {
+          <p class="tab-panel__empty">No citations available.</p>
+        } @else {
+          <div class="citations-list" aria-label="Source citations">
+            @for (citation of result().sources; track trackCitation($index, citation)) {
+              <div class="citation-card" role="article" [attr.aria-label]="'Citation from ' + citation.documentName">
+                <div class="citation-card__header">
+                  <mat-icon class="citation-card__icon" aria-hidden="true">description</mat-icon>
+                  <span class="citation-card__doc">{{ citation.documentName }}</span>
+                  <span
+                    class="citation-card__confidence"
+                    [class.citation-card__confidence--high]="citation.confidenceScore >= 0.9"
+                    [class.citation-card__confidence--medium]="citation.confidenceScore >= 0.7 && citation.confidenceScore < 0.9"
+                    [class.citation-card__confidence--low]="citation.confidenceScore < 0.7"
+                    [attr.aria-label]="'Confidence score: ' + formatConfidence(citation.confidenceScore)"
+                  >
+                    {{ formatConfidence(citation.confidenceScore) }}
+                  </span>
+                </div>
+                <div class="citation-card__location">
+                  <span class="citation-card__page">Page {{ citation.pageNumber }}</span>
+                  <span class="citation-card__sep" aria-hidden="true">&bull;</span>
+                  <span class="citation-card__paragraph">Paragraph {{ citation.paragraphReference }}</span>
+                </div>
+                @if (citation.snippet) {
+                  <div class="citation-card__snippet">
+                    <mat-icon aria-hidden="true" class="citation-card__quote-icon">format_quote</mat-icon>
+                    <p>{{ citation.snippet }}</p>
+                  </div>
+                }
               </div>
-              <div class="citation-card__location">
-                <span class="citation-card__page">Page {{ citation.pageNumber }}</span>
-                <span class="citation-card__sep" aria-hidden="true">&bull;</span>
-                <span class="citation-card__paragraph">Paragraph {{ citation.paragraphRef }}</span>
-              </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        }
 
         <mat-divider class="citations-divider" />
 
         <h3 class="citations-sub-title">Inline Citations by Difference</h3>
         <p class="citations-note">Each identified difference below includes the specific document sources used by the AI to detect that change.</p>
 
-        @for (entry of result().changeLog; track entry.id) {
+        @for (entry of result().differences; track trackDifference($index, entry)) {
           @if (entry.citations.length > 0) {
             <div class="inline-citation-block">
               <div class="inline-citation-block__section">
                 <span
                   class="inline-status-badge"
-                  [attr.data-status]="entry.status"
-                  [attr.aria-label]="entry.status"
+                  [attr.data-status]="entry.type"
+                  [attr.aria-label]="entry.type"
                 >
-                  {{ entry.status === 'added' ? '+' : entry.status === 'removed' ? '-' : '~' }}
+                  {{ entry.type === 'Added' ? '+' : entry.type === 'Removed' ? '-' : '~' }}
                 </span>
                 {{ entry.section }}
               </div>
@@ -217,9 +249,9 @@
                   <span
                     class="citation-chip"
                     role="note"
-                    [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphRef + ' confidence ' + formatConfidence(citation.confidenceScore)"
+                    [attr.aria-label]="citation.documentName + ' page ' + citation.pageNumber + ' paragraph ' + citation.paragraphReference + ' confidence ' + formatConfidence(citation.confidenceScore)"
                   >
-                    {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphRef }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
+                    {{ citation.documentName }} p.{{ citation.pageNumber }} &para;{{ citation.paragraphReference }} &mdash; {{ formatConfidence(citation.confidenceScore) }}
                   </span>
                 }
               </div>

@@ -1,6 +1,7 @@
 using AI.DocumentIntelligence.Api.Extensions;
 using AI.DocumentIntelligence.Application.Contracts.Comparison;
 using AI.DocumentIntelligence.Application.Features.Comparison;
+using AI.DocumentIntelligence.Application.Features.Comparison.GetComparisonSessions;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,17 @@ public sealed class ComparisonController(ISender sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(command, cancellationToken);
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Returns a summary list of the current user's comparison sessions.</summary>
+    [HttpGet("sessions")]
+    [ProducesResponseType(typeof(IReadOnlyList<ComparisonSessionSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSessionsAsync(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetComparisonSessionsQuery(), cancellationToken);
         return result.ToActionResult(this);
     }
 }

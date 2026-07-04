@@ -52,11 +52,16 @@ services:
 
   # ---------------------------------------------------------------------------
   # Azure AI Search has no official local container/emulator — it is a managed
-  # Azure cloud service.  For local development the Api talks to either a real
-  # Azure AI Search resource (via AzureSearch__* env vars) or an in-process
-  # fallback (e.g. pgvector-only search) behind the same IAIProvider/ISearchService
-  # abstraction.  This entry is a placeholder so the wiring/port story is
-  # explicit and discoverable; uncomment and point at a real endpoint when needed.
+  # Azure cloud service.
+  #
+  # LOCAL FALLBACK (active when AzureSearch__Endpoint is blank):
+  #   PgVectorSearchService (in AI.DocumentIntelligence.Persistence/Search/) is
+  #   registered automatically as ISearchService. It stores and retrieves chunks
+  #   against the postgres service above using pgvector's <=> cosine operator and
+  #   the HNSW index created by the InitialCreate migration.
+  #
+  #   To activate Azure AI Search instead: set AzureSearch__Endpoint and
+  #   AzureSearch__ApiKey in your .env file (or environment). No code change needed.
   # ---------------------------------------------------------------------------
   # ai-search-stub:
   #   image: mcr.microsoft.com/azure-search/search-emulator:placeholder
@@ -64,7 +69,7 @@ services:
   #   environment:
   #     AzureSearch__Endpoint: ${AzureSearch__Endpoint:-}
   #     AzureSearch__ApiKey: ${AzureSearch__ApiKey:-}
-  #     AzureSearch__IndexName: ${AzureSearch__IndexName:-documents}
+  #     AzureSearch__IndexName: ${AzureSearch__IndexName:-document-chunks}
 
   # ---- API -----------------------------------------------------------------
   api:
@@ -83,8 +88,11 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       # Database
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Host=postgres;Port=5432;Database=document_intelligence;Username=postgres;Password=postgres}
-      # Blob storage (Azurite in dev)
-      ConnectionStrings__BlobStorage: ${ConnectionStrings__BlobStorage:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      # AzureStorage:* — read by AzureBlobFileStorage / BlobStorageOptions.
+      # The Azurite dev connection string below wires the API to the local emulator container.
+      # For production, replace with the real Azure Blob Storage connection string via secrets.
+      AzureStorage__ConnectionString: ${AzureStorage__ConnectionString:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      AzureStorage__ContainerName: ${AzureStorage__ContainerName:-documents}
       # JWT — MUST be set; never leave as default in any real environment.
       # Set Jwt__SecretKey in your .env file (see .env.example).
       Jwt__Issuer: ${Jwt__Issuer:-DocumentIntelligence}
