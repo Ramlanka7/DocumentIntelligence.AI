@@ -6,8 +6,7 @@ namespace AI.DocumentIntelligence.Tests.AI;
 
 /// <summary>
 /// Verifies that providers still registered as stubs (OpenAI, Ollama) return
-/// a well-typed failure rather than throwing. AnthropicProvider is fully
-/// implemented and tested separately via integration tests.
+/// a well-typed failure rather than throwing.
 /// </summary>
 public sealed class UnconfiguredProviderTests
 {
