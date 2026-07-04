@@ -1,12 +1,13 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
 internal sealed class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
 {
-    public AuditLogRepository(ApplicationDbContext context)
+    public AuditLogRepository(AppDbContext context)
         : base(context)
     {
     }
