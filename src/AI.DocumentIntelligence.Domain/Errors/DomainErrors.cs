@@ -49,6 +49,9 @@ public static class DomainErrors
 
     public static class Citation
     {
+        public static readonly Error InvalidDocumentId =
+            Error.Validation("Citation.InvalidDocumentId", "A citation must reference a valid document identifier.");
+
         public static readonly Error MissingDocumentName =
             Error.Validation("Citation.MissingDocumentName", "A citation must reference a document name.");
 
@@ -99,5 +102,47 @@ public static class DomainErrors
     {
         public static readonly Error InvalidStateTransition =
             Error.Conflict("Session.InvalidStateTransition", "The session cannot transition to the requested state.");
+    }
+
+    public static class Upload
+    {
+        public static readonly Error TooManyDocuments =
+            Error.Validation("Upload.TooManyDocuments", "A maximum of 4 documents may be uploaded at once.");
+
+        public static readonly Error CombinedPageLimitExceeded =
+            Error.Validation("Upload.CombinedPageLimitExceeded", "The combined page count of all uploaded documents must not exceed 500.");
+
+        public static readonly Error FileSizeExceeded =
+            Error.Validation("Upload.FileSizeExceeded", "One or more files exceed the maximum allowed size.");
+
+        public static readonly Error CombinedSizeExceeded =
+            Error.Validation("Upload.CombinedSizeExceeded", "The combined size of all uploaded files exceeds the allowed limit.");
+
+        public static readonly Error UnsupportedFileType =
+            Error.Validation("Upload.UnsupportedFileType", "One or more files have an unsupported or unrecognised file type.");
+    }
+
+    public static class Auth
+    {
+        public static readonly Error Unauthenticated =
+            Error.Unauthorized("Auth.Unauthenticated", "Authentication is required to perform this operation.");
+    }
+
+    public static class Token
+    {
+        public static readonly Error Invalid =
+            Error.Unauthorized("Token.Invalid", "The token is invalid or expired.");
+    }
+
+    public static class Export
+    {
+        public static readonly Error UnsupportedFormat =
+            Error.Validation("Export.UnsupportedFormat", "The requested export format is not supported.");
+
+        public static readonly Error EmptyResult =
+            Error.Validation("Export.EmptyResult", "Cannot export a null result.");
+
+        public static Error ExportFailed(string detail) =>
+            Error.Failure("Export.Failed", $"Export generation failed: {detail}");
     }
 }

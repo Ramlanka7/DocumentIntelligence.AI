@@ -1,0 +1,326 @@
+:host {
+  display: block;
+}
+
+.diff-viewer {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.diff-viewer__header {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.diff-viewer__legend {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.legend-item__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.legend-item--added {
+  color: #4caf50;
+  .legend-item__marker {
+    background-color: rgba(76, 175, 80, 0.2);
+  }
+}
+
+.legend-item--removed {
+  color: #ef5350;
+  .legend-item__marker {
+    background-color: rgba(239, 83, 80, 0.2);
+  }
+}
+
+.legend-item--modified {
+  color: #ff9800;
+  .legend-item__marker {
+    background-color: rgba(255, 152, 0, 0.2);
+  }
+}
+
+.diff-viewer__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding-top: 0.25rem;
+}
+
+.diff-viewer__col-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diff-viewer__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #4caf50;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.diff-entries {
+  display: flex;
+  flex-direction: column;
+}
+
+.diff-entry {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &--added {
+    border-left: 4px solid #4caf50;
+    background-color: rgba(76, 175, 80, 0.06);
+
+    .diff-pane--after {
+      background-color: rgba(76, 175, 80, 0.08);
+    }
+
+    .diff-entry__marker {
+      color: #4caf50;
+      background-color: rgba(76, 175, 80, 0.15);
+    }
+  }
+
+  &--removed {
+    border-left: 4px solid #ef5350;
+    background-color: rgba(239, 83, 80, 0.06);
+
+    .diff-pane--before {
+      background-color: rgba(239, 83, 80, 0.08);
+    }
+
+    .diff-entry__marker {
+      color: #ef5350;
+      background-color: rgba(239, 83, 80, 0.15);
+    }
+  }
+
+  &--modified {
+    border-left: 4px solid #ff9800;
+    background-color: rgba(255, 152, 0, 0.04);
+
+    .diff-pane--before {
+      background-color: rgba(239, 83, 80, 0.06);
+    }
+
+    .diff-pane--after {
+      background-color: rgba(76, 175, 80, 0.06);
+    }
+
+    .diff-entry__marker {
+      color: #ff9800;
+      background-color: rgba(255, 152, 0, 0.15);
+    }
+  }
+}
+
+.diff-entry__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.diff-entry__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.diff-entry__meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.diff-entry__section {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--mat-sys-on-surface);
+}
+
+.diff-entry__badges {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge--status {
+  &[data-status='added'] {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+  }
+  &[data-status='removed'] {
+    background-color: rgba(239, 83, 80, 0.2);
+    color: #e57373;
+  }
+  &[data-status='modified'] {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+  }
+}
+
+.badge--type {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.diff-entry__content {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  padding: 1rem;
+  gap: 0.5rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diff-pane {
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  min-height: 4rem;
+
+  &--empty {
+    opacity: 0.5;
+  }
+}
+
+.diff-pane__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-pane__placeholder {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.diff-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.4;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.diff-divider__icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.diff-entry__citations {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.diff-entry__citations-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 1rem;
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  cursor: default;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.11);
+  }
+}

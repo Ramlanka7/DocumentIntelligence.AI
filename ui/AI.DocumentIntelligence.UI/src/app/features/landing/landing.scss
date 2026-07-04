@@ -1,0 +1,93 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-block: 2rem;
+}
+
+.landing__hero {
+  text-align: center;
+  max-width: 48rem;
+  animation: fade-in-up 0.6s ease-out both;
+}
+
+.landing__title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  margin: 0 0 1rem;
+  background: linear-gradient(135deg, var(--mat-sys-primary), var(--mat-sys-tertiary));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.landing__subtitle {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.landing__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.landing__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  animation: fade-in-up 0.6s ease-out both;
+  animation-delay: 0.15s;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--mat-sys-level3);
+  }
+}
+
+.landing__card-icon {
+  margin-right: 0.75rem;
+  color: var(--mat-sys-primary);
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing__hero,
+  .landing__card {
+    animation: none;
+  }
+
+  .landing__card:hover {
+    transform: none;
+  }
+}

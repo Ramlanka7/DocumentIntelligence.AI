@@ -17,4 +17,7 @@ public interface ICurrentUser
 
     /// <summary>Whether the current request is authenticated.</summary>
     public bool IsAuthenticated { get; }
+
+    /// <summary>The remote IP address of the request, or null when unavailable.</summary>
+    public string? IpAddress { get; }
 }

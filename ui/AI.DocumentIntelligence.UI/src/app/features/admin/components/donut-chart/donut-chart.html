@@ -1,0 +1,61 @@
+<figure class="donut-chart" role="img" [attr.aria-label]="title() + ' donut chart'">
+  @if (title()) {
+    <figcaption class="donut-chart__title">{{ title() }}</figcaption>
+  }
+
+  @if (hasData()) {
+    <div class="donut-chart__inner">
+      <svg
+        class="donut-chart__svg"
+        viewBox="0 0 180 180"
+        aria-hidden="true"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        @for (seg of computed(); track seg.label) {
+          <path
+            [attr.d]="seg.path"
+            [attr.fill]="seg.color"
+            class="donut-chart__segment"
+          >
+            <title>{{ seg.label }}: {{ seg.percentage }}% ({{ seg.value }})</title>
+          </path>
+        }
+        <!-- Centre text -->
+        <text
+          x="90"
+          y="84"
+          class="donut-chart__centre-label"
+          text-anchor="middle"
+          dominant-baseline="middle"
+        >{{ computed().length }}</text>
+        <text
+          x="90"
+          y="100"
+          class="donut-chart__centre-sub"
+          text-anchor="middle"
+          dominant-baseline="middle"
+        >types</text>
+      </svg>
+
+      <!-- Legend -->
+      <ul class="donut-chart__legend" role="list" aria-label="Chart legend">
+        @for (seg of computed(); track seg.label) {
+          <li class="donut-chart__legend-item">
+            <span
+              class="donut-chart__legend-swatch"
+              [style.background-color]="seg.color"
+              aria-hidden="true"
+            ></span>
+            <span class="donut-chart__legend-label">{{ seg.label }}</span>
+            <span class="donut-chart__legend-pct">{{ seg.percentage }}%</span>
+            <span class="donut-chart__legend-val">({{ seg.value }})</span>
+          </li>
+        }
+      </ul>
+    </div>
+  } @else {
+    <div class="donut-chart__empty" role="status">
+      <span>No data available</span>
+    </div>
+  }
+</figure>

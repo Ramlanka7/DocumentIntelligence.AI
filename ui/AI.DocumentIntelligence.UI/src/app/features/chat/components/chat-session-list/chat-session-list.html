@@ -1,0 +1,68 @@
+<div class="session-list">
+  <div class="session-list__header">
+    <span class="session-list__title">Chat Sessions</span>
+    <button
+      mat-icon-button
+      (click)="newSession.emit()"
+      aria-label="Start new chat session"
+      matTooltip="New chat"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="session-list__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="28" />
+    </div>
+  } @else if (sessions().length === 0) {
+    <div class="session-list__empty">
+      <mat-icon aria-hidden="true">forum</mat-icon>
+      <p>No sessions yet.<br />Start a new one!</p>
+    </div>
+  } @else {
+    <ul class="session-list__items" role="listbox" aria-label="Chat sessions">
+      @for (session of sessions(); track trackSession($index, session)) {
+        <li
+          class="session-item"
+          [class.session-item--active]="session.id === activeSessionId()"
+          role="option"
+          [attr.aria-selected]="session.id === activeSessionId()"
+          (click)="select(session.id)"
+          (keydown.enter)="select(session.id)"
+          (keydown.space)="select(session.id)"
+          tabindex="0"
+        >
+          <div class="session-item__icon" aria-hidden="true">
+            <mat-icon>forum</mat-icon>
+          </div>
+          <div class="session-item__content">
+            <span class="session-item__title">{{ session.title }}</span>
+            <span class="session-item__meta">
+              {{ session.messageCount }} msgs &middot;
+              <time [attr.datetime]="session.updatedAt ?? session.createdAt">
+                {{ (session.updatedAt ?? session.createdAt) | date: 'shortDate' }}
+              </time>
+            </span>
+            @if (session.documentIds.length > 0) {
+              <span class="session-item__docs">
+                <mat-icon aria-hidden="true">description</mat-icon>
+                {{ session.documentIds.length }} document{{ session.documentIds.length === 1 ? '' : 's' }}
+              </span>
+            }
+          </div>
+          <button
+            mat-icon-button
+            class="session-item__delete"
+            (click)="delete($event, session.id)"
+            [attr.aria-label]="'Delete session: ' + session.title"
+            matTooltip="Delete session"
+            tabindex="-1"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -1,0 +1,83 @@
+<div class="upload-container">
+  <!-- Drop zone -->
+  <div
+    class="drop-zone"
+    [class.drop-zone--dragging]="isDragging()"
+    [class.drop-zone--has-files]="files().length > 0"
+    role="region"
+    aria-label="Document upload area"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="openFilePicker()"
+    (keydown.enter)="openFilePicker()"
+    (keydown.space)="openFilePicker()"
+    tabindex="0"
+  >
+    <mat-icon class="drop-zone__icon" aria-hidden="true">cloud_upload</mat-icon>
+    <p class="drop-zone__title">
+      @if (isDragging()) {
+        Drop documents here
+      } @else {
+        Drag &amp; drop documents or <span class="drop-zone__link">browse</span>
+      }
+    </p>
+    <p class="drop-zone__hint">
+      {{ minFiles }}–{{ maxFiles }} documents &bull; PDF, DOCX, TXT &bull; Max 50 MB each
+    </p>
+  </div>
+
+  <!-- Hidden file input -->
+  <input
+    #fileInput
+    type="file"
+    [accept]="acceptedExtensions"
+    multiple
+    class="visually-hidden"
+    aria-label="Select documents to compare"
+    (change)="onFileInputChange($event)"
+  />
+
+  <!-- Validation error -->
+  @if (localError()) {
+    <div class="upload-error" role="alert" aria-live="assertive">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ localError() }}</span>
+    </div>
+  }
+
+  <!-- File list -->
+  @if (files().length > 0) {
+    <ul class="file-list" aria-label="Uploaded documents">
+      @for (file of files(); track file.name; let i = $index) {
+        <li class="file-item">
+          <mat-icon class="file-item__icon" aria-hidden="true">{{ getFileIcon(file) }}</mat-icon>
+          <div class="file-item__info">
+            <span class="file-item__name" [title]="file.name">{{ file.name }}</span>
+            <span class="file-item__size">{{ formatSize(file.size) }}</span>
+          </div>
+          <button
+            mat-icon-button
+            class="file-item__remove"
+            [attr.aria-label]="'Remove ' + file.name"
+            (click)="removeFile(i); $event.stopPropagation()"
+          >
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <!-- Document count status -->
+    <div class="upload-status" aria-live="polite">
+      <span [class.upload-status--ready]="files().length >= minFiles">
+        {{ files().length }} / {{ maxFiles }} documents selected
+        @if (files().length >= minFiles) {
+          &mdash; ready to compare
+        } @else {
+          &mdash; add {{ minFiles - files().length }} more to compare
+        }
+      </span>
+    </div>
+  }
+</div>

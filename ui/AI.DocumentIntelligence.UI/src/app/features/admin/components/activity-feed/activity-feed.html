@@ -1,0 +1,45 @@
+<section class="activity-feed" aria-labelledby="activity-feed-heading">
+  <h2 id="activity-feed-heading" class="activity-feed__heading">Recent Activity</h2>
+
+  @if (loading()) {
+    <ul class="activity-feed__list" aria-label="Loading recent activity" aria-busy="true">
+      @for (n of [1, 2, 3, 4, 5]; track n) {
+        <li class="activity-feed__item activity-feed__item--skeleton" aria-hidden="true">
+          <span class="activity-feed__skeleton activity-feed__skeleton--icon"></span>
+          <div class="activity-feed__skeleton-body">
+            <span class="activity-feed__skeleton activity-feed__skeleton--title"></span>
+            <span class="activity-feed__skeleton activity-feed__skeleton--sub"></span>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else if (enriched().length === 0) {
+    <div class="activity-feed__empty" role="status">
+      <mat-icon aria-hidden="true">history</mat-icon>
+      <p>No recent activity</p>
+    </div>
+  } @else {
+    <ul class="activity-feed__list" role="list" aria-label="Recent platform activity">
+      @for (item of enriched(); track item.id) {
+        <li class="activity-feed__item" role="listitem">
+          <span
+            class="activity-feed__icon-wrap"
+            [style.background-color]="item.iconColor + '22'"
+            aria-hidden="true"
+          >
+            <mat-icon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
+          </span>
+          <div class="activity-feed__content">
+            <span class="activity-feed__user">{{ item.userEmail }}</span>
+            <span class="activity-feed__desc">{{ item.description }}</span>
+          </div>
+          <time
+            class="activity-feed__time"
+            [attr.datetime]="item.timestamp"
+            [attr.title]="item.timestamp"
+          >{{ item.timeAgo }}</time>
+        </li>
+      }
+    </ul>
+  }
+</section>

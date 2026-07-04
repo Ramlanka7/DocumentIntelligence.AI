@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AI.DocumentIntelligence.Tests</RootNamespace>
+    <AssemblyName>AI.DocumentIntelligence.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>CA1707;CA1859;CA1711</NoWarn>
+    <!-- Coverage output consumed by coverlet -->
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>./TestResults/coverage.cobertura.xml</CoverletOutput>
+    <Exclude>[*.Tests]*</Exclude>
+  </PropertyGroup>
+
+  <!-- Tests may reference every layer so any unit/integration suite can be added later. -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/AI.DocumentIntelligence.Domain/AI.DocumentIntelligence.Domain.csproj" />
+    <ProjectReference Include="../../src/AI.DocumentIntelligence.Application/AI.DocumentIntelligence.Application.csproj" />
+    <ProjectReference Include="../../src/AI.DocumentIntelligence.Infrastructure/AI.DocumentIntelligence.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/AI.DocumentIntelligence.Persistence/AI.DocumentIntelligence.Persistence.csproj" />
+    <ProjectReference Include="../../src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
+    <!-- Integration test host -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- Testcontainers for ephemeral PostgreSQL + pgvector -->
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.Azurite" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

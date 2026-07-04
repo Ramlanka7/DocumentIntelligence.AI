@@ -1,0 +1,31 @@
+<section class="landing">
+  <div class="landing__hero" role="banner">
+    <h1 class="landing__title">{{ title }}</h1>
+    <p class="landing__subtitle">{{ subtitle }}</p>
+  </div>
+
+  <div class="landing__cards" role="list">
+    @for (feature of features; track feature.link) {
+      <mat-card class="landing__card" role="listitem" appearance="outlined">
+        <mat-card-header>
+          <mat-icon class="landing__card-icon" aria-hidden="true">{{ feature.icon }}</mat-icon>
+          <mat-card-title>{{ feature.title }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ feature.description }}</p>
+        </mat-card-content>
+        <mat-card-actions>
+          <a
+            mat-flat-button
+            color="primary"
+            [routerLink]="feature.link"
+            [attr.aria-label]="feature.cta + ': ' + feature.title"
+          >
+            {{ feature.cta }}
+            <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          </a>
+        </mat-card-actions>
+      </mat-card>
+    }
+  </div>
+</section>

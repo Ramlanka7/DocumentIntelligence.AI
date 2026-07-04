@@ -11,9 +11,7 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
         builder.ToTable("chat_sessions");
 
         builder.HasKey(s => s.Id);
-
-        builder.Property(s => s.Id)
-            .HasColumnName("id");
+        builder.Property(s => s.Id).HasColumnName("id");
 
         builder.Property(s => s.OwnerId)
             .HasColumnName("owner_id")
@@ -21,8 +19,8 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
 
         builder.Property(s => s.Status)
             .HasColumnName("status")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(s => s.CreatedAtUtc)
@@ -32,25 +30,26 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
         builder.Property(s => s.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        // Store private _documentIds list as a JSON column.
-        builder.Property<List<Guid>>("_documentIds")
+        // Primitive collection: List<Guid> stored as jsonb via the private backing field.
+        builder.PrimitiveCollection<List<Guid>>("_documentIds")
+            .HasField("_documentIds")
             .HasColumnName("document_ids")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.HasIndex(s => s.OwnerId)
-            .HasDatabaseName("ix_chat_sessions_owner_id");
-
-        // One-to-many: ChatSession owns its messages.
+        // Messages collection: one-to-many via the public property, backed by _messages field.
         builder.HasMany(s => s.Messages)
             .WithOne()
             .HasForeignKey(m => m.ChatSessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Ignore computed read-only collection backed by persisted field.
-        builder.Ignore(s => s.DocumentIds);
+        builder.Navigation(s => s.Messages)
+            .HasField("_messages")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        // Ignore domain events collection (not persisted).
+        builder.HasIndex(s => s.OwnerId)
+            .HasDatabaseName("ix_chat_sessions_owner_id");
+
         builder.Ignore(s => s.DomainEvents);
     }
 }

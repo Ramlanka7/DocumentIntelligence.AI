@@ -28,8 +28,10 @@ src/
   AI.DocumentIntelligence.Domain         # Entities, value objects, enums, domain errors
   AI.DocumentIntelligence.Infrastructure # AI providers, Azure AI Search, doc processors, auth
   AI.DocumentIntelligence.Persistence    # EF Core DbContext, configs, repositories, migrations
+tests/
   AI.DocumentIntelligence.Tests          # Unit + integration tests
-frontend/                                # Angular 20 workspace
+ui/
+  AI.DocumentIntelligence.UI/            # Angular 20 workspace
 ```
 
 Dependencies flow inward only: `Api → Application → Domain`. `Infrastructure`
@@ -50,10 +52,10 @@ dotnet restore
 dotnet build
 
 # Frontend
-cd frontend
+cd ui/AI.DocumentIntelligence.UI
 npm ci
 npm run build
-cd ..
+cd ../..
 
 # Local stack (Postgres + pgvector, Azurite, Api, frontend)
 cp .env.example .env

@@ -11,9 +11,7 @@ internal sealed class AiUsageMetricConfiguration : IEntityTypeConfiguration<AiUs
         builder.ToTable("ai_usage_metrics");
 
         builder.HasKey(m => m.Id);
-
-        builder.Property(m => m.Id)
-            .HasColumnName("id");
+        builder.Property(m => m.Id).HasColumnName("id");
 
         builder.Property(m => m.UserId)
             .HasColumnName("user_id")
@@ -21,7 +19,7 @@ internal sealed class AiUsageMetricConfiguration : IEntityTypeConfiguration<AiUs
 
         builder.Property(m => m.OperationType)
             .HasColumnName("operation_type")
-            .HasMaxLength(100)
+            .HasMaxLength(128)
             .IsRequired();
 
         builder.Property(m => m.SessionId)
@@ -38,21 +36,19 @@ internal sealed class AiUsageMetricConfiguration : IEntityTypeConfiguration<AiUs
         builder.Property(m => m.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        // TokenUsage owned type.
-        builder.OwnsOne(m => m.TokenUsage, tu =>
+        // TokenUsage: complex property mapped as flat columns.
+        builder.ComplexProperty(m => m.TokenUsage, tu =>
         {
-            tu.Property(t => t.PromptTokens).HasColumnName("prompt_tokens").IsRequired();
-            tu.Property(t => t.CompletionTokens).HasColumnName("completion_tokens").IsRequired();
-            tu.Property(t => t.EstimatedCost).HasColumnName("estimated_cost").HasPrecision(18, 6).IsRequired();
+            tu.Property(t => t.PromptTokens).HasColumnName("token_prompt_tokens");
+            tu.Property(t => t.CompletionTokens).HasColumnName("token_completion_tokens");
+            tu.Property(t => t.EstimatedCost)
+                .HasColumnName("token_estimated_cost")
+                .HasPrecision(18, 6);
         });
 
-        builder.HasIndex(m => m.UserId)
-            .HasDatabaseName("ix_ai_usage_metrics_user_id");
+        builder.HasIndex(m => new { m.UserId, m.CreatedAtUtc })
+            .HasDatabaseName("ix_ai_usage_metrics_user_id_created_at_utc");
 
-        builder.HasIndex(m => m.CreatedAtUtc)
-            .HasDatabaseName("ix_ai_usage_metrics_created_at_utc");
-
-        // Ignore domain events collection (not persisted).
         builder.Ignore(m => m.DomainEvents);
     }
 }

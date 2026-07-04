@@ -1,0 +1,51 @@
+<div class="shell">
+  <mat-toolbar color="primary" class="shell__toolbar">
+    <a routerLink="/" class="shell__brand" aria-label="AI Document Intelligence Platform home">
+      <mat-icon aria-hidden="true">description</mat-icon>
+      <span class="shell__brand-text">{{ title() }}</span>
+    </a>
+
+    <nav class="shell__nav" aria-label="Primary">
+      @if (isAuthenticated()) {
+        @for (link of navLinks; track link.path) {
+          <a mat-button [routerLink]="link.path">{{ link.label }}</a>
+        }
+        @if (isAdmin()) {
+          <a mat-button routerLink="/admin" class="shell__admin-link">
+            <mat-icon aria-hidden="true">admin_panel_settings</mat-icon>
+            Admin
+          </a>
+        }
+      }
+    </nav>
+
+    <span class="shell__spacer"></span>
+
+    @if (isAuthenticated()) {
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Account menu for ' + (user()?.email ?? 'current user')"
+      >
+        <mat-icon aria-hidden="true">account_circle</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <div class="shell__menu-header">
+          <span class="shell__menu-email">{{ user()?.email }}</span>
+          <span class="shell__menu-role">{{ user()?.role }}</span>
+        </div>
+        <mat-divider />
+        <button mat-menu-item (click)="signOut()">
+          <mat-icon aria-hidden="true">logout</mat-icon>
+          <span>Sign out</span>
+        </button>
+      </mat-menu>
+    } @else {
+      <a mat-flat-button color="accent" routerLink="/login">Sign in</a>
+    }
+  </mat-toolbar>
+
+  <main class="shell__content">
+    <router-outlet />
+  </main>
+</div>

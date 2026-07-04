@@ -12,9 +12,7 @@ internal sealed class AnalysisSessionConfiguration : IEntityTypeConfiguration<An
         builder.ToTable("analysis_sessions");
 
         builder.HasKey(s => s.Id);
-
-        builder.Property(s => s.Id)
-            .HasColumnName("id");
+        builder.Property(s => s.Id).HasColumnName("id");
 
         builder.Property(s => s.OwnerId)
             .HasColumnName("owner_id")
@@ -22,8 +20,8 @@ internal sealed class AnalysisSessionConfiguration : IEntityTypeConfiguration<An
 
         builder.Property(s => s.Capability)
             .HasColumnName("capability")
+            .HasMaxLength(50)
             .HasConversion<string>()
-            .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(s => s.CustomQuestion)
@@ -31,8 +29,8 @@ internal sealed class AnalysisSessionConfiguration : IEntityTypeConfiguration<An
 
         builder.Property(s => s.Status)
             .HasColumnName("status")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(s => s.ExecutiveSummary)
@@ -52,60 +50,74 @@ internal sealed class AnalysisSessionConfiguration : IEntityTypeConfiguration<An
         builder.Property(s => s.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        // Store private list collections as JSON columns.
-        builder.Property<List<Guid>>(AnalysisSessionFieldNames.DocumentIds)
+        // TokenUsage: complex property mapped as flat columns.
+        builder.ComplexProperty(s => s.TokenUsage, tu =>
+        {
+            tu.Property(t => t.PromptTokens).HasColumnName("token_prompt_tokens");
+            tu.Property(t => t.CompletionTokens).HasColumnName("token_completion_tokens");
+            tu.Property(t => t.EstimatedCost)
+                .HasColumnName("token_estimated_cost")
+                .HasPrecision(18, 6);
+        });
+
+        // Primitive collections: stored as jsonb.
+        // The backing fields (_documentIds, _keyFindings, etc.) are private readonly List<T>.
+        // EF Core 8+ supports primitive collections via PrimitiveCollection<T>("fieldName").
+        builder.PrimitiveCollection<List<Guid>>("_documentIds")
+            .HasField("_documentIds")
             .HasColumnName("document_ids")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>(AnalysisSessionFieldNames.KeyFindings)
+        builder.PrimitiveCollection<List<string>>("_keyFindings")
+            .HasField("_keyFindings")
             .HasColumnName("key_findings")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>(AnalysisSessionFieldNames.RisksIdentified)
+        builder.PrimitiveCollection<List<string>>("_risksIdentified")
+            .HasField("_risksIdentified")
             .HasColumnName("risks_identified")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>(AnalysisSessionFieldNames.Recommendations)
+        builder.PrimitiveCollection<List<string>>("_recommendations")
+            .HasField("_recommendations")
             .HasColumnName("recommendations")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>(AnalysisSessionFieldNames.ActionItems)
+        builder.PrimitiveCollection<List<string>>("_actionItems")
+            .HasField("_actionItems")
             .HasColumnName("action_items")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<Citation>>(AnalysisSessionFieldNames.ReferencedSources)
-            .HasColumnName("referenced_sources")
-            .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-        // TokenUsage owned type.
-        builder.OwnsOne(s => s.TokenUsage, tu =>
+        // Citation collection: OwnsMany on the public property, accessing via backing field.
+        // Using the public property name avoids the EF "must be configured explicitly" error.
+        builder.OwnsMany(s => s.ReferencedSources, citation =>
         {
-            tu.Property(t => t.PromptTokens).HasColumnName("prompt_tokens").IsRequired();
-            tu.Property(t => t.CompletionTokens).HasColumnName("completion_tokens").IsRequired();
-            tu.Property(t => t.EstimatedCost).HasColumnName("estimated_cost").HasPrecision(18, 6).IsRequired();
+            citation.ToJson("referenced_sources");
+
+            citation.Property(c => c.DocumentId).HasColumnName("document_id");
+            citation.Property(c => c.DocumentName)
+                .HasColumnName("document_name")
+                .HasMaxLength(512);
+            citation.Property(c => c.PageNumber).HasColumnName("page_number");
+            citation.Property(c => c.ParagraphReference)
+                .HasColumnName("paragraph_reference")
+                .HasMaxLength(512);
+            citation.Property(c => c.Snippet).HasColumnName("snippet");
+            citation.Property(c => c.ConfidenceScore).HasColumnName("confidence_score");
         });
+
+        builder.Navigation(s => s.ReferencedSources)
+            .HasField("_referencedSources")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(s => s.OwnerId)
             .HasDatabaseName("ix_analysis_sessions_owner_id");
 
-        builder.HasIndex(s => s.Status)
-            .HasDatabaseName("ix_analysis_sessions_status");
-
-        // Ignore computed read-only collection properties that are backed by the persisted fields.
-        builder.Ignore(s => s.DocumentIds);
-        builder.Ignore(s => s.KeyFindings);
-        builder.Ignore(s => s.RisksIdentified);
-        builder.Ignore(s => s.Recommendations);
-        builder.Ignore(s => s.ActionItems);
-        builder.Ignore(s => s.ReferencedSources);
-
-        // Ignore domain events collection (not persisted).
         builder.Ignore(s => s.DomainEvents);
     }
 }

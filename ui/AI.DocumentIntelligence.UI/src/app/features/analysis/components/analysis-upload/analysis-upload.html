@@ -1,0 +1,110 @@
+<div class="upload-container">
+  <!-- Drop zone -->
+  <div
+    class="drop-zone"
+    [class.drop-zone--dragging]="isDragging()"
+    [class.drop-zone--has-files]="files().length > 0"
+    role="region"
+    aria-label="Document upload area — drag and drop or click to browse"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="openFilePicker()"
+    (keydown.enter)="openFilePicker()"
+    (keydown.space)="openFilePicker()"
+    tabindex="0"
+  >
+    <mat-icon class="drop-zone__icon" aria-hidden="true">cloud_upload</mat-icon>
+    <p class="drop-zone__title">
+      @if (isDragging()) {
+        Drop documents here
+      } @else {
+        Drag &amp; drop documents or <span class="drop-zone__link">browse</span>
+      }
+    </p>
+    <p class="drop-zone__hint">
+      Up to {{ maxFiles }} documents &bull; PDF, DOCX, TXT, CSV, PPTX &bull; Max 50 MB each
+    </p>
+  </div>
+
+  <!-- Hidden file input -->
+  <input
+    #fileInput
+    type="file"
+    [accept]="acceptAttr"
+    multiple
+    class="visually-hidden"
+    aria-label="Select documents to analyse"
+    (change)="onFileInputChange($event)"
+  />
+
+  <!-- Validation error -->
+  @if (localError()) {
+    <div class="upload-error" role="alert" aria-live="assertive">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ localError() }}</span>
+    </div>
+  }
+
+  <!-- File list -->
+  @if (files().length > 0) {
+    <ul class="file-list" aria-label="Selected documents">
+      @for (file of files(); track file.name; let i = $index) {
+        <li class="file-item">
+          <mat-icon class="file-item__icon" aria-hidden="true">{{ getFileIcon(file) }}</mat-icon>
+
+          <div class="file-item__info">
+            <span class="file-item__name" [title]="file.name">{{ file.name }}</span>
+            <span class="file-item__size">{{ formatSize(file.size) }}</span>
+
+            <!-- Upload progress bar shown once analysis starts -->
+            @if (getFileStatus(i); as af) {
+              <div class="file-item__status-row">
+                @if (af.status === 'uploading') {
+                  <mat-progress-bar
+                    mode="indeterminate"
+                    class="file-item__progress"
+                    aria-label="Uploading {{ file.name }}"
+                  />
+                }
+                @if (af.status === 'success') {
+                  <span class="file-item__status file-item__status--success" aria-label="Upload complete for {{ file.name }}">
+                    <mat-icon aria-hidden="true">check_circle</mat-icon>Uploaded
+                  </span>
+                }
+                @if (af.status === 'error') {
+                  <span class="file-item__status file-item__status--error" role="alert">
+                    <mat-icon aria-hidden="true">error_outline</mat-icon>{{ af.errorMessage ?? 'Upload failed' }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Remove button — only enabled before analysis is running -->
+          @if (analysisFiles().length === 0) {
+            <button
+              mat-icon-button
+              class="file-item__remove"
+              [attr.aria-label]="'Remove ' + file.name"
+              (click)="removeFile(i); $event.stopPropagation()"
+            >
+              <mat-icon aria-hidden="true">close</mat-icon>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+
+    <div class="upload-status" aria-live="polite">
+      <span [class.upload-status--ready]="files().length >= 1">
+        {{ files().length }} / {{ maxFiles }} document{{ files().length !== 1 ? 's' : '' }} selected
+        @if (files().length >= 1) {
+          &mdash; ready to analyse
+        } @else {
+          &mdash; add at least 1 document
+        }
+      </span>
+    </div>
+  }
+</div>

@@ -1,0 +1,85 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.shell__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 0.5rem;
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.shell__brand-text {
+  font-size: 1.125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.shell__nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 1.5rem;
+
+  @media (max-width: 720px) {
+    display: none;
+  }
+}
+
+.shell__admin-link {
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.2rem;
+  }
+}
+
+.shell__spacer {
+  flex: 1 1 auto;
+}
+
+.shell__menu-header {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 1rem;
+  min-width: 12rem;
+}
+
+.shell__menu-email {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__menu-role {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.shell__content {
+  flex: 1 1 auto;
+  display: flex;
+  padding: 2rem 1.5rem;
+
+  @media (max-width: 640px) {
+    padding: 1.25rem 1rem;
+  }
+}

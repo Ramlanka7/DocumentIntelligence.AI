@@ -12,9 +12,7 @@ internal sealed class ComparisonSessionConfiguration : IEntityTypeConfiguration<
         builder.ToTable("comparison_sessions");
 
         builder.HasKey(s => s.Id);
-
-        builder.Property(s => s.Id)
-            .HasColumnName("id");
+        builder.Property(s => s.Id).HasColumnName("id");
 
         builder.Property(s => s.OwnerId)
             .HasColumnName("owner_id")
@@ -22,14 +20,14 @@ internal sealed class ComparisonSessionConfiguration : IEntityTypeConfiguration<
 
         builder.Property(s => s.ComparisonType)
             .HasColumnName("comparison_type")
+            .HasMaxLength(50)
             .HasConversion<string>()
-            .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(s => s.Status)
             .HasColumnName("status")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(s => s.ExecutiveOverview)
@@ -52,51 +50,88 @@ internal sealed class ComparisonSessionConfiguration : IEntityTypeConfiguration<
         builder.Property(s => s.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        // Store private list collections as JSON columns.
-        builder.Property<List<Guid>>("_documentIds")
+        // TokenUsage: complex property mapped as flat columns.
+        builder.ComplexProperty(s => s.TokenUsage, tu =>
+        {
+            tu.Property(t => t.PromptTokens).HasColumnName("token_prompt_tokens");
+            tu.Property(t => t.CompletionTokens).HasColumnName("token_completion_tokens");
+            tu.Property(t => t.EstimatedCost)
+                .HasColumnName("token_estimated_cost")
+                .HasPrecision(18, 6);
+        });
+
+        // Primitive collection: List<Guid> stored as jsonb.
+        builder.PrimitiveCollection<List<Guid>>("_documentIds")
+            .HasField("_documentIds")
             .HasColumnName("document_ids")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>("_keyDifferences")
+        // Primitive collections: List<string> stored as jsonb.
+        builder.PrimitiveCollection<List<string>>("_keyDifferences")
+            .HasField("_keyDifferences")
             .HasColumnName("key_differences")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<string>>("_recommendations")
+        builder.PrimitiveCollection<List<string>>("_recommendations")
+            .HasField("_recommendations")
             .HasColumnName("recommendations")
             .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+            .IsRequired();
 
-        builder.Property<List<ChangeLogEntry>>("_detailedChangeLog")
-            .HasColumnName("detailed_change_log")
-            .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-        builder.Property<List<Citation>>("_sourceCitations")
-            .HasColumnName("source_citations")
-            .HasColumnType("jsonb")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-        // TokenUsage owned type.
-        builder.OwnsOne(s => s.TokenUsage, tu =>
+        // ChangeLogEntry collection: OwnsMany on the public property, accessing via backing field.
+        builder.OwnsMany(s => s.DetailedChangeLog, entry =>
         {
-            tu.Property(t => t.PromptTokens).HasColumnName("prompt_tokens").IsRequired();
-            tu.Property(t => t.CompletionTokens).HasColumnName("completion_tokens").IsRequired();
-            tu.Property(t => t.EstimatedCost).HasColumnName("estimated_cost").HasPrecision(18, 6).IsRequired();
+            entry.ToJson("detailed_change_log");
+
+            entry.Property(e => e.Status)
+                .HasColumnName("status")
+                .HasMaxLength(50)
+                .HasConversion<string>();
+
+            entry.Property(e => e.Section)
+                .HasColumnName("section")
+                .HasMaxLength(1024);
+
+            entry.Property(e => e.OldContent)
+                .HasColumnName("old_content");
+
+            entry.Property(e => e.NewContent)
+                .HasColumnName("new_content");
+
+            entry.Property(e => e.Description)
+                .HasColumnName("description");
         });
+
+        builder.Navigation(s => s.DetailedChangeLog)
+            .HasField("_detailedChangeLog")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Citation collection stored as a JSON column.
+        builder.OwnsMany(s => s.SourceCitations, citation =>
+        {
+            citation.ToJson("source_citations");
+
+            citation.Property(c => c.DocumentId).HasColumnName("document_id");
+            citation.Property(c => c.DocumentName)
+                .HasColumnName("document_name")
+                .HasMaxLength(512);
+            citation.Property(c => c.PageNumber).HasColumnName("page_number");
+            citation.Property(c => c.ParagraphReference)
+                .HasColumnName("paragraph_reference")
+                .HasMaxLength(512);
+            citation.Property(c => c.Snippet).HasColumnName("snippet");
+            citation.Property(c => c.ConfidenceScore).HasColumnName("confidence_score");
+        });
+
+        builder.Navigation(s => s.SourceCitations)
+            .HasField("_sourceCitations")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(s => s.OwnerId)
             .HasDatabaseName("ix_comparison_sessions_owner_id");
 
-        // Ignore computed read-only collection properties backed by persisted fields.
-        builder.Ignore(s => s.DocumentIds);
-        builder.Ignore(s => s.KeyDifferences);
-        builder.Ignore(s => s.Recommendations);
-        builder.Ignore(s => s.DetailedChangeLog);
-        builder.Ignore(s => s.SourceCitations);
-
-        // Ignore domain events collection (not persisted).
         builder.Ignore(s => s.DomainEvents);
     }
 }

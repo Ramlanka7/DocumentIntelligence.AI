@@ -15,7 +15,7 @@ COPY src/AI.DocumentIntelligence.Application/AI.DocumentIntelligence.Application
 COPY src/AI.DocumentIntelligence.Domain/AI.DocumentIntelligence.Domain.csproj src/AI.DocumentIntelligence.Domain/
 COPY src/AI.DocumentIntelligence.Infrastructure/AI.DocumentIntelligence.Infrastructure.csproj src/AI.DocumentIntelligence.Infrastructure/
 COPY src/AI.DocumentIntelligence.Persistence/AI.DocumentIntelligence.Persistence.csproj src/AI.DocumentIntelligence.Persistence/
-COPY src/AI.DocumentIntelligence.Tests/AI.DocumentIntelligence.Tests.csproj src/AI.DocumentIntelligence.Tests/
+COPY tests/AI.DocumentIntelligence.Tests/AI.DocumentIntelligence.Tests.csproj tests/AI.DocumentIntelligence.Tests/
 
 RUN dotnet restore src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.csproj
 
@@ -25,6 +25,39 @@ RUN dotnet publish src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.c
     --configuration Release \
     --no-restore \
     --output /app/publish
+
+## ---------------------------------------------------------------------------
+## Migrator stage: EF Core design-time image used by the `migrate` compose
+## service and the CD pipeline migration step.
+##
+## Requires T02 (EF Core DbContext + migrations) to be complete before this
+## target produces meaningful results.  Until then, `dotnet ef database update`
+## will report "No migrations were applied." and exit 0.
+##
+## Usage (docker compose):
+##   docker compose --profile migrate run --rm migrate
+##
+## Usage (CI/CD direct):
+##   docker run --rm \
+##     -e ConnectionStrings__DefaultConnection=... \
+##     -e Jwt__SecretKey=... \
+##     ghcr.io/<owner>/ai-document-intelligence-api:sha-<sha>
+## ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS migrator
+WORKDIR /src
+
+# Reuse the already-restored + built source from the build stage.
+COPY --from=build /src ./
+COPY --from=build /root/.nuget /root/.nuget
+
+RUN dotnet tool install --global dotnet-ef
+
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+ENTRYPOINT ["dotnet", "ef", "database", "update", \
+    "--project", "src/AI.DocumentIntelligence.Persistence", \
+    "--startup-project", "src/AI.DocumentIntelligence.Api", \
+    "--no-build"]
 
 ## ---------------------------------------------------------------------------
 ## Runtime stage: minimal ASP.NET runtime image only.
@@ -37,16 +70,14 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup --system --gid 1000 appgroup \
-    && adduser --system --uid 1000 --ingroup appgroup --shell /bin/false appuser
-
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_RUNNING_IN_CONTAINER=true \
     ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=build /app/publish ./
 
-USER appuser
+# The .NET 8+ runtime image ships a built-in non-root 'app' user (UID 1654).
+USER app
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

@@ -1,3 +1,6 @@
+using AI.DocumentIntelligence.Application.Common.Mappings;
+using DomainCitation = AI.DocumentIntelligence.Domain.ValueObjects.Citation;
+
 namespace AI.DocumentIntelligence.Application.Contracts;
 
 /// <summary>
@@ -16,4 +19,4 @@ public sealed record Citation(
     int PageNumber,
     string ParagraphReference,
     string Snippet,
-    double ConfidenceScore);
+    double ConfidenceScore) : IMapFrom<DomainCitation>;

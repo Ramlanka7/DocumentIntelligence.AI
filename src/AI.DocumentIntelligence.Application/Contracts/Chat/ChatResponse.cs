@@ -7,7 +7,9 @@ namespace AI.DocumentIntelligence.Application.Contracts.Chat;
 /// <param name="Answer">The generated answer text.</param>
 /// <param name="Citations">Sources supporting the answer (required for every response).</param>
 /// <param name="Usage">Token usage for the call.</param>
+/// <param name="SessionId">The chat session this answer belongs to (newly created when the request omitted one).</param>
 public sealed record ChatResponse(
     string Answer,
     IReadOnlyList<Citation> Citations,
-    TokenUsage Usage);
+    TokenUsage Usage,
+    Guid SessionId);

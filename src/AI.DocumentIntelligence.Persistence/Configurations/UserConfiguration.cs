@@ -1,4 +1,5 @@
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,9 +12,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("users");
 
         builder.HasKey(u => u.Id);
-
-        builder.Property(u => u.Id)
-            .HasColumnName("id");
+        builder.Property(u => u.Id).HasColumnName("id");
 
         builder.Property(u => u.Email)
             .HasColumnName("email")
@@ -32,8 +31,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Role)
             .HasColumnName("role")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(u => u.IsActive)
@@ -54,11 +53,12 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
+        // Unique index on email; emails are stored normalized (lowercased) by the domain.
         builder.HasIndex(u => u.Email)
             .IsUnique()
-            .HasDatabaseName("ix_users_email_unique");
+            .HasDatabaseName("ix_users_email");
 
-        // Ignore domain events collection (not persisted).
+        // Ignore DomainEvents — they are transient and never persisted.
         builder.Ignore(u => u.DomainEvents);
     }
 }

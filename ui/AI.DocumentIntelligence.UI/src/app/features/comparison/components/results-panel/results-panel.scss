@@ -1,0 +1,436 @@
+:host {
+  display: block;
+}
+
+// ── Summary bar ───────────────────────────────────────────────────────────────
+
+.results-summary {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.results-summary__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  min-width: 3.5rem;
+  text-align: center;
+
+  &--added .results-summary__count {
+    color: #4caf50;
+  }
+
+  &--removed .results-summary__count {
+    color: #ef5350;
+  }
+
+  &--modified .results-summary__count {
+    color: #ff9800;
+  }
+}
+
+.results-summary__count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mat-sys-on-surface);
+}
+
+.results-summary__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.results-summary__actions {
+  margin-left: auto;
+}
+
+// ── Tab navigation ────────────────────────────────────────────────────────────
+
+.results-tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0;
+}
+
+.results-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0.875rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 0.375rem 0.375rem 0 0;
+  margin-bottom: -1px;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  &:hover {
+    color: var(--mat-sys-on-surface);
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+
+  &--active {
+    color: var(--mat-sys-primary);
+    border-bottom-color: var(--mat-sys-primary);
+  }
+}
+
+// ── Tab panels ────────────────────────────────────────────────────────────────
+
+.results-content {
+  padding-top: 1.5rem;
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tab-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+
+.overview-text {
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+
+  p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+// ── Risk analysis ─────────────────────────────────────────────────────────────
+
+.risk-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background-color: rgba(239, 83, 80, 0.1);
+  border: 1px solid rgba(239, 83, 80, 0.25);
+  color: #ef9a9a;
+  font-weight: 500;
+  font-size: 0.9375rem;
+
+  mat-icon {
+    color: #ef5350;
+    flex-shrink: 0;
+  }
+}
+
+.risk-text {
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+
+  p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+// ── Recommendations ───────────────────────────────────────────────────────────
+
+.recommendations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.recommendation-item__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background-color: rgba(var(--mat-sys-primary-rgb, 33, 150, 243), 0.15);
+  color: var(--mat-sys-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.recommendation-item__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface);
+  padding-top: 0.1875rem;
+}
+
+// ── Citations ─────────────────────────────────────────────────────────────────
+
+.citations-intro {
+  p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.5;
+  }
+}
+
+.citations-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.75rem;
+}
+
+.citation-card {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.citation-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.citation-card__icon {
+  color: var(--mat-sys-primary);
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+.citation-card__doc {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citation-card__confidence {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  flex-shrink: 0;
+
+  &--high {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #81c784;
+  }
+
+  &--medium {
+    background-color: rgba(255, 152, 0, 0.15);
+    color: #ffb74d;
+  }
+
+  &--low {
+    background-color: rgba(239, 83, 80, 0.15);
+    color: #e57373;
+  }
+}
+
+.citation-card__location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.citation-card__sep {
+  opacity: 0.4;
+}
+
+.citations-divider {
+  margin: 0.5rem 0;
+}
+
+.citations-sub-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.citations-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// ── Inline citation blocks (Citations tab) ────────────────────────────────────
+
+.inline-citation-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.inline-citation-block__section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.inline-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+
+  &[data-status='added'] {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+  }
+
+  &[data-status='removed'] {
+    background-color: rgba(239, 83, 80, 0.2);
+    color: #e57373;
+  }
+
+  &[data-status='modified'] {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+  }
+}
+
+.inline-citation-block__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+// ── Citation chip (shared style for inline citations) ─────────────────────────
+
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 1rem;
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  cursor: default;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.11);
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+
+@media (max-width: 640px) {
+  .results-summary {
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .results-summary__actions {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .results-tabs {
+    gap: 0;
+  }
+
+  .results-tab span {
+    display: none;
+  }
+
+  .citations-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,20 +1,35 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
-internal sealed class ChatSessionRepository : Repository<ChatSession>, IChatSessionRepository
+/// <summary>
+/// EF Core implementation of <see cref="IChatSessionRepository"/>. All queries eager-load the
+/// <c>Messages</c> navigation and order messages by <c>Ordinal</c> so that handlers always
+/// receive fully-populated sessions without additional round-trips.
+/// </summary>
+internal sealed class ChatSessionRepository(AppDbContext context) : IChatSessionRepository
 {
-    public ChatSessionRepository(ApplicationDbContext context)
-        : base(context)
-    {
-    }
+    private readonly AppDbContext _context = context;
 
-    public async Task<ChatSession?> GetWithMessagesAsync(
-        Guid sessionId,
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ChatSession>> GetByOwnerAsync(
+        Guid ownerId,
         CancellationToken cancellationToken = default) =>
-        await DbSet
-            .Include(s => s.Messages)
-            .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        await _context.Set<ChatSession>()
+            .Where(s => s.OwnerId == ownerId)
+            .Include(s => s.Messages.OrderBy(m => m.Ordinal))
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<ChatSession?> GetByIdWithMessagesAsync(
+        Guid id,
+        CancellationToken cancellationToken = default) =>
+        await _context.Set<ChatSession>()
+            .Where(s => s.Id == id)
+            .Include(s => s.Messages.OrderBy(m => m.Ordinal))
+            .FirstOrDefaultAsync(cancellationToken);
 }

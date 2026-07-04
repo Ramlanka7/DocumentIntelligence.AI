@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI.DocumentIntelligence.Per
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI.DocumentIntelligence.Api", "src\AI.DocumentIntelligence.Api\AI.DocumentIntelligence.Api.csproj", "{5BC972F1-0544-4750-A55D-15C6F47AC3A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI.DocumentIntelligence.Tests", "src\AI.DocumentIntelligence.Tests\AI.DocumentIntelligence.Tests.csproj", "{99D96B4E-92D1-4ADB-AE00-4621080AC65E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI.DocumentIntelligence.Tests", "tests\AI.DocumentIntelligence.Tests\AI.DocumentIntelligence.Tests.csproj", "{99D96B4E-92D1-4ADB-AE00-4621080AC65E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

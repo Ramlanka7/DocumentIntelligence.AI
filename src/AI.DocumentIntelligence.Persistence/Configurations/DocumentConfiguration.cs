@@ -1,5 +1,4 @@
 using AI.DocumentIntelligence.Domain.Entities;
-using AI.DocumentIntelligence.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,9 +11,7 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.ToTable("documents");
 
         builder.HasKey(d => d.Id);
-
-        builder.Property(d => d.Id)
-            .HasColumnName("id");
+        builder.Property(d => d.Id).HasColumnName("id");
 
         builder.Property(d => d.OwnerId)
             .HasColumnName("owner_id")
@@ -22,19 +19,19 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
 
         builder.Property(d => d.Type)
             .HasColumnName("type")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(d => d.Status)
             .HasColumnName("status")
-            .HasConversion<string>()
             .HasMaxLength(50)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(d => d.StoragePath)
             .HasColumnName("storage_path")
-            .HasMaxLength(1024)
+            .HasMaxLength(2048)
             .IsRequired();
 
         builder.Property(d => d.ExtractedText)
@@ -42,7 +39,7 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
 
         builder.Property(d => d.FailureReason)
             .HasColumnName("failure_reason")
-            .HasMaxLength(2048);
+            .HasMaxLength(1024);
 
         builder.Property(d => d.CreatedAtUtc)
             .HasColumnName("created_at_utc")
@@ -51,29 +48,41 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        // FileMetadata owned type stored as JSON column.
+        // FileMetadata owned type: mapped as flat columns on the Documents table.
         builder.OwnsOne(d => d.Metadata, meta =>
         {
-            meta.ToJson("metadata");
-            meta.Property(m => m.FileName).HasColumnName("file_name").HasMaxLength(512).IsRequired();
-            meta.Property(m => m.SizeBytes).HasColumnName("size_bytes").IsRequired();
-            meta.Property(m => m.PageCount).HasColumnName("page_count").IsRequired();
-            meta.Property(m => m.ContentType).HasColumnName("content_type").HasMaxLength(128).IsRequired();
+            meta.Property(m => m.FileName)
+                .HasColumnName("metadata_file_name")
+                .HasMaxLength(512)
+                .IsRequired();
+
+            meta.Property(m => m.SizeBytes)
+                .HasColumnName("metadata_size_bytes")
+                .IsRequired();
+
+            meta.Property(m => m.PageCount)
+                .HasColumnName("metadata_page_count")
+                .IsRequired();
+
+            meta.Property(m => m.ContentType)
+                .HasColumnName("metadata_content_type")
+                .HasMaxLength(128)
+                .IsRequired();
         });
 
-        builder.HasIndex(d => d.OwnerId)
-            .HasDatabaseName("ix_documents_owner_id");
-
-        builder.HasIndex(d => d.Status)
-            .HasDatabaseName("ix_documents_status");
-
-        // One-to-many: Document owns its chunks.
+        // Chunks collection: one-to-many on public property, backed by _chunks field.
         builder.HasMany(d => d.Chunks)
             .WithOne()
             .HasForeignKey(c => c.DocumentId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Ignore domain events collection (not persisted).
+        builder.Navigation(d => d.Chunks)
+            .HasField("_chunks")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasIndex(d => d.OwnerId)
+            .HasDatabaseName("ix_documents_owner_id");
+
         builder.Ignore(d => d.DomainEvents);
     }
 }

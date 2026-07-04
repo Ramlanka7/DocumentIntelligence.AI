@@ -11,9 +11,7 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.ToTable("audit_logs");
 
         builder.HasKey(a => a.Id);
-
-        builder.Property(a => a.Id)
-            .HasColumnName("id");
+        builder.Property(a => a.Id).HasColumnName("id");
 
         builder.Property(a => a.UserId)
             .HasColumnName("user_id");
@@ -25,7 +23,7 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.Property(a => a.EntityType)
             .HasColumnName("entity_type")
-            .HasMaxLength(256)
+            .HasMaxLength(128)
             .IsRequired();
 
         builder.Property(a => a.EntityId)
@@ -45,13 +43,12 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        builder.HasIndex(a => a.UserId)
-            .HasDatabaseName("ix_audit_logs_user_id");
-
         builder.HasIndex(a => a.CreatedAtUtc)
             .HasDatabaseName("ix_audit_logs_created_at_utc");
 
-        // Ignore domain events collection (not persisted).
+        builder.HasIndex(a => a.UserId)
+            .HasDatabaseName("ix_audit_logs_user_id");
+
         builder.Ignore(a => a.DomainEvents);
     }
 }
