@@ -198,9 +198,11 @@ builder.Services
 var app = builder.Build();
 
 // ---- Database migration ----
-// Only runs when a real connection string is present (skipped in tests that use in-memory fakes).
+// Running migrations automatically can be convenient in dev, but in production it is often
+// preferable to run migrations as a separate step to avoid concurrent startup migrations.
 var dbConnectionString = app.Configuration.GetConnectionString("DefaultConnection");
-if (!string.IsNullOrWhiteSpace(dbConnectionString))
+var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
+if (autoMigrate && !string.IsNullOrWhiteSpace(dbConnectionString))
 {
     using var migrationScope = app.Services.CreateScope();
     var dbContext = migrationScope.ServiceProvider.GetRequiredService<AppDbContext>();
