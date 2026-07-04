@@ -21,7 +21,7 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
     /// <summary>Stable identifier used for provider selection and telemetry.</summary>
     public const string ProviderName = "AzureOpenAI";
 
-    private readonly ChatClient _client;
+    private readonly ChatClient? _client;
     private readonly AzureOpenAIOptions _options;
     private readonly ILogger<AzureOpenAiProvider> _logger;
 
@@ -35,11 +35,13 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
         _options = options.Value;
         _logger = logger;
 
-        var azureClient = new AzureOpenAIClient(
-            new Uri(_options.Endpoint),
-            new AzureKeyCredential(_options.ApiKey));
-
-        _client = azureClient.GetChatClient(_options.ChatDeployment);
+        if (!string.IsNullOrWhiteSpace(_options.Endpoint) && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            var azureClient = new AzureOpenAIClient(
+                new Uri(_options.Endpoint),
+                new AzureKeyCredential(_options.ApiKey));
+            _client = azureClient.GetChatClient(_options.ChatDeployment);
+        }
     }
 
     /// <inheritdoc />
@@ -47,6 +49,13 @@ internal sealed partial class AzureOpenAiProvider : IAIProvider
         AiCompletionRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (_client is null)
+        {
+            return Result.Failure<AiCompletionResult>(
+                Error.Failure("AzureOpenAI.NotConfigured",
+                    "Azure OpenAI is not configured. Set AzureOpenAI:Endpoint and AzureOpenAI:ApiKey."));
+        }
+
         using var activity = InfrastructureActivitySource.Source.StartActivity(
             "ai.completion", ActivityKind.Client);
         activity?.SetTag("ai.provider", ProviderName);

@@ -41,6 +41,13 @@ internal sealed partial class AnthropicProvider : IAIProvider, IDisposable
         AiCompletionRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            return Result.Failure<AiCompletionResult>(
+                DomainError.Failure("Anthropic.NotConfigured",
+                    "Anthropic is not configured. Set Anthropic:ApiKey to a valid API key (starts with 'sk-ant-')."));
+        }
+
         using var activity = InfrastructureActivitySource.Source.StartActivity(
             "ai.completion", ActivityKind.Client);
         activity?.SetTag("ai.provider", ProviderName);

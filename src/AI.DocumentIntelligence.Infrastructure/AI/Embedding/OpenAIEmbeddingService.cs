@@ -16,7 +16,7 @@ namespace AI.DocumentIntelligence.Infrastructure.AI.Embedding;
 /// </summary>
 internal sealed partial class OpenAIEmbeddingService : IEmbeddingService
 {
-    private readonly EmbeddingClient _client;
+    private readonly EmbeddingClient? _client;
     private readonly OpenAIOptions _options;
     private readonly ILogger<OpenAIEmbeddingService> _logger;
 
@@ -27,8 +27,11 @@ internal sealed partial class OpenAIEmbeddingService : IEmbeddingService
         _options = options.Value;
         _logger = logger;
 
-        var openAiClient = new OpenAIClient(_options.ApiKey);
-        _client = openAiClient.GetEmbeddingClient(_options.EmbeddingModel);
+        if (!string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            var openAiClient = new OpenAIClient(_options.ApiKey);
+            _client = openAiClient.GetEmbeddingClient(_options.EmbeddingModel);
+        }
     }
 
     public async Task<Result<IReadOnlyList<float>>> GenerateEmbeddingAsync(
@@ -49,6 +52,13 @@ internal sealed partial class OpenAIEmbeddingService : IEmbeddingService
         IReadOnlyList<string> inputs,
         CancellationToken cancellationToken = default)
     {
+        if (_client is null)
+        {
+            return Result.Failure<IReadOnlyList<IReadOnlyList<float>>>(
+                Error.Failure("Embedding.NotConfigured",
+                    "OpenAI embedding is not configured. Set OpenAI:ApiKey to a valid API key."));
+        }
+
         if (inputs.Count == 0)
         {
             return Result.Success<IReadOnlyList<IReadOnlyList<float>>>([]);

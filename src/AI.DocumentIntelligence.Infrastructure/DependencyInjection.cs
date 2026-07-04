@@ -103,9 +103,10 @@ public static class DependencyInjection
         }
         else
         {
-            // No credentials configured — register Azure service so startup doesn't fail;
-            // embedding calls will return errors until credentials are supplied.
-            services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+            // No credentials configured — register a null implementation that returns a typed
+            // Result failure on every call. This avoids the UriFormatException that
+            // AzureOpenAIEmbeddingService would throw at DI resolution time with empty config.
+            services.AddSingleton<IEmbeddingService, NullEmbeddingService>();
         }
 
         // ---- Azure AI Search (T05) ----

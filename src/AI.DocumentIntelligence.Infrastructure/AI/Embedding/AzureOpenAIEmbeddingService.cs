@@ -15,7 +15,7 @@ namespace AI.DocumentIntelligence.Infrastructure.AI.Embedding;
 /// </summary>
 internal sealed partial class AzureOpenAIEmbeddingService : IEmbeddingService
 {
-    private readonly EmbeddingClient _client;
+    private readonly EmbeddingClient? _client;
     private readonly AzureOpenAIOptions _options;
     private readonly ILogger<AzureOpenAIEmbeddingService> _logger;
 
@@ -26,11 +26,13 @@ internal sealed partial class AzureOpenAIEmbeddingService : IEmbeddingService
         _options = options.Value;
         _logger = logger;
 
-        var azureClient = new AzureOpenAIClient(
-            new Uri(_options.Endpoint),
-            new AzureKeyCredential(_options.ApiKey));
-
-        _client = azureClient.GetEmbeddingClient(_options.EmbeddingDeployment);
+        if (!string.IsNullOrWhiteSpace(_options.Endpoint) && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            var azureClient = new AzureOpenAIClient(
+                new Uri(_options.Endpoint),
+                new AzureKeyCredential(_options.ApiKey));
+            _client = azureClient.GetEmbeddingClient(_options.EmbeddingDeployment);
+        }
     }
 
     /// <inheritdoc />
@@ -53,6 +55,13 @@ internal sealed partial class AzureOpenAIEmbeddingService : IEmbeddingService
         IReadOnlyList<string> inputs,
         CancellationToken cancellationToken = default)
     {
+        if (_client is null)
+        {
+            return Result.Failure<IReadOnlyList<IReadOnlyList<float>>>(
+                Error.Failure("Embedding.NotConfigured",
+                    "Azure OpenAI embedding is not configured. Set AzureOpenAI:Endpoint and AzureOpenAI:ApiKey."));
+        }
+
         if (inputs.Count == 0)
         {
             return Result.Success<IReadOnlyList<IReadOnlyList<float>>>([]);
