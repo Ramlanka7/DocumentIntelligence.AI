@@ -36,7 +36,6 @@ builder.Services
     // enum values as strings (e.g. chat AiRole, DifferenceType, statuses) instead of magic integers.
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
