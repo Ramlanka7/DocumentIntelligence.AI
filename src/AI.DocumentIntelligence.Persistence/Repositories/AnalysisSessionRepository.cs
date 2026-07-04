@@ -1,13 +1,14 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Entities;
 using AI.DocumentIntelligence.Persistence.Configurations;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
 internal sealed class AnalysisSessionRepository : Repository<AnalysisSession>, IAnalysisSessionRepository
 {
-    public AnalysisSessionRepository(ApplicationDbContext context)
+    public AnalysisSessionRepository(AppDbContext context)
         : base(context)
     {
     }

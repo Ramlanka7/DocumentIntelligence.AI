@@ -1,12 +1,13 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Domain.Entities;
+using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Repositories;
 
 internal sealed class ComparisonSessionRepository : Repository<ComparisonSession>, IComparisonSessionRepository
 {
-    public ComparisonSessionRepository(ApplicationDbContext context)
+    public ComparisonSessionRepository(AppDbContext context)
         : base(context)
     {
     }
