@@ -11,6 +11,7 @@ using AI.DocumentIntelligence.Infrastructure;
 using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
 using AI.DocumentIntelligence.Persistence.Context;
+using AI.DocumentIntelligence.Persistence;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -36,6 +37,8 @@ builder.Services
     // enum values as strings (e.g. chat AiRole, DifferenceType, statuses) instead of magic integers.
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -211,6 +214,7 @@ if (autoMigrate && !string.IsNullOrWhiteSpace(dbConnectionString))
 
 // ---- Global exception handler (must be outermost) ----
 app.UseExceptionHandler();
+await app.Services.InitialiseDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {
