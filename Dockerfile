@@ -30,10 +30,6 @@ RUN dotnet publish src/AI.DocumentIntelligence.Api/AI.DocumentIntelligence.Api.c
 ## Migrator stage: EF Core design-time image used by the `migrate` compose
 ## service and the CD pipeline migration step.
 ##
-## Requires T02 (EF Core DbContext + migrations) to be complete before this
-## target produces meaningful results.  Until then, `dotnet ef database update`
-## will report "No migrations were applied." and exit 0.
-##
 ## Usage (docker compose):
 ##   docker compose --profile migrate run --rm migrate
 ##

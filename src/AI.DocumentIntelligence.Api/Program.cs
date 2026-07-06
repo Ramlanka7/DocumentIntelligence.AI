@@ -7,6 +7,7 @@ using AI.DocumentIntelligence.Api.Middleware;
 using AI.DocumentIntelligence.Api.Observability;
 using AI.DocumentIntelligence.Application;
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
+using AI.DocumentIntelligence.Application.Abstractions.Ingestion;
 using AI.DocumentIntelligence.Infrastructure;
 using AI.DocumentIntelligence.Infrastructure.Auth;
 using AI.DocumentIntelligence.Persistence;
@@ -36,7 +37,6 @@ builder.Services
     // enum values as strings (e.g. chat AiRole, DifferenceType, statuses) instead of magic integers.
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -78,7 +78,10 @@ var allowedOrigins = builder.Configuration
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedOrigins)
           .AllowAnyHeader()
-          .AllowAnyMethod()));
+          .AllowAnyMethod()
+          // Required for the HttpOnly refresh-token cookie on /auth endpoints.
+          // Safe with WithOrigins (explicit allowlist); never combine with AllowAnyOrigin.
+          .AllowCredentials()));
 
 // ---- Request size limits (aligned with UploadOptions) ----
 builder.Services.Configure<FormOptions>(opts =>
@@ -111,6 +114,12 @@ builder.Services.AddHttpContextAccessor();
 
 // ---- ICurrentUser resolved from HTTP context ----
 builder.Services.AddScoped<ICurrentUser, CurrentUserService>();
+
+// ---- Background document ingestion ----
+// Upload schedules a job; IngestionWorker chunks/embeds/indexes and finalizes document status.
+builder.Services.AddSingleton<ChannelIngestionScheduler>();
+builder.Services.AddSingleton<IIngestionScheduler>(sp => sp.GetRequiredService<ChannelIngestionScheduler>());
+builder.Services.AddHostedService<IngestionWorker>();
 
 // ---- JWT authentication ----
 var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
@@ -148,38 +157,45 @@ builder.Services.AddAuthorization(opts =>
 });
 
 // ---- Rate limiting ----
-// GlobalLimiter partitions by authenticated user ID (falling back to IP for anonymous callers)
-// so that one user's traffic cannot exhaust the quota of another.
+// Both limiters partition by authenticated user ID (falling back to IP for anonymous
+// callers) so that one caller's traffic can never exhaust another's quota — this matters
+// most on the auth endpoints, where a shared bucket would let a single client lock
+// everyone out of login. Limits are config-overridable (RateLimiting:*) for tests and
+// per-environment tuning.
+var globalPermitLimit = builder.Configuration.GetValue("RateLimiting:GlobalPermitLimit", 60);
+var authPermitLimit = builder.Configuration.GetValue("RateLimiting:AuthPermitLimit", 10);
+
+static string ClientPartitionKey(HttpContext context) =>
+    context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
+    ?? context.Connection.RemoteIpAddress?.ToString()
+    ?? "anonymous";
+
 builder.Services.AddRateLimiter(opts =>
 {
     opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-    {
-        var partitionKey =
-            context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? context.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
-
-        return RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: partitionKey,
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientPartitionKey(context),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = globalPermitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0,
-            });
-    });
+            }));
 
-    // Tighter named limiter applied to auth endpoints specifically.
-    opts.AddFixedWindowLimiter("AuthEndpoints", o =>
-    {
-        o.PermitLimit = 10;
-        o.Window = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit = 0;
-    });
+    // Tighter per-client limiter applied to auth endpoints specifically.
+    opts.AddPolicy("AuthEndpoints", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientPartitionKey(context),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authPermitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            }));
 });
 
 // ---- API versioning ----
@@ -210,6 +226,16 @@ if (autoMigrate && !string.IsNullOrWhiteSpace(dbConnectionString))
     await dbContext.Database.MigrateAsync();
 }
 
+// ---- Data seeding (initial admin user) ----
+// Registration requires an existing admin, so a fresh database is unusable until the
+// first admin exists. Enable Database:SeedOnStartup and set Seed:AdminPassword (secret)
+// to create it. Idempotent — a no-op once the admin user exists.
+var seedOnStartup = app.Configuration.GetValue<bool>("Database:SeedOnStartup");
+if (seedOnStartup && !string.IsNullOrWhiteSpace(dbConnectionString))
+{
+    await app.Services.SeedDatabaseAsync();
+}
+
 // ---- Global exception handler (must be outermost) ----
 app.UseExceptionHandler();
 
@@ -226,6 +252,13 @@ if (app.Environment.IsDevelopment())
 
 // ---- Correlation ID (before Serilog request logging so the ID appears in every log event) ----
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+// HSTS instructs browsers to only ever use HTTPS for this host. Skipped in Development
+// (localhost) per ASP.NET guidance so local HTTP tooling keeps working.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 

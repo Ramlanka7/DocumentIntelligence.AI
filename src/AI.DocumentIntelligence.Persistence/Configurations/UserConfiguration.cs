@@ -53,6 +53,12 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
+        // Optimistic concurrency via PostgreSQL's xmin system column: concurrent updates to
+        // the same user row (role change vs. deactivation vs. token rotation) now fail fast
+        // with DbUpdateConcurrencyException instead of silently last-write-wins.
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
+
         // Unique index on email; emails are stored normalized (lowercased) by the domain.
         builder.HasIndex(u => u.Email)
             .IsUnique()

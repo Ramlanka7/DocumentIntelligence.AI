@@ -40,7 +40,6 @@ describe('AuthStore', () => {
     });
     tokenStorage.save({
       accessToken,
-      refreshToken: 'refresh-token',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     });
 
@@ -59,7 +58,6 @@ describe('AuthStore', () => {
     });
     tokenStorage.save({
       accessToken,
-      refreshToken: 'refresh-token',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     });
 

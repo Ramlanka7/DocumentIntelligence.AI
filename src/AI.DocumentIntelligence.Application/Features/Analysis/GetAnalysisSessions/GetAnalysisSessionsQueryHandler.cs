@@ -1,5 +1,6 @@
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
+using AI.DocumentIntelligence.Application.Common;
 using AI.DocumentIntelligence.Application.Common.Messaging;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Domain.Entities;
@@ -25,10 +26,9 @@ internal sealed class GetAnalysisSessionsQueryHandler(
         var ownerId = currentUser.UserId.Value;
 
         var sessions = await unitOfWork.Repository<AnalysisSession>()
-            .FindAsync(s => s.OwnerId == ownerId, cancellationToken);
+            .FindNewestAsync(s => s.OwnerId == ownerId, QueryLimits.MaxListResults, cancellationToken);
 
         var dtos = sessions
-            .OrderByDescending(s => s.CreatedAtUtc)
             .Select(s => new AnalysisSessionSummaryDto(
                 Id: s.Id,
                 Capability: s.Capability.ToString(),

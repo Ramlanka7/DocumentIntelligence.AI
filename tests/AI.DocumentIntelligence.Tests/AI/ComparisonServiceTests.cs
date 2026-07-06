@@ -19,6 +19,7 @@ public sealed class ComparisonServiceTests
     private readonly Mock<ISearchService> _searchMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<ICurrentUser> _userMock = new();
+    private readonly Guid _userId = Guid.NewGuid();
 
     private IComparisonService CreateSut() =>
         new ComparisonService(
@@ -27,6 +28,16 @@ public sealed class ComparisonServiceTests
             _uowMock.Object,
             _userMock.Object,
             NullLogger<ComparisonService>.Instance);
+
+    /// <summary>Authenticates the default user and registers two owned documents.</summary>
+    private (Guid First, Guid Second) ArrangeTwoOwnedDocuments()
+    {
+        AiTestAuth.Authenticate(_userMock, _userId);
+        var first = AiTestAuth.NewDocumentOwnedBy(_userId);
+        var second = AiTestAuth.NewDocumentOwnedBy(_userId);
+        AiTestAuth.SetupDocuments(_uowMock, first, second);
+        return (first.Id, second.Id);
+    }
 
     [Fact]
     public async Task CompareAsync_WithOneDocument_ReturnsFailure()
@@ -52,10 +63,36 @@ public sealed class ComparisonServiceTests
     }
 
     [Fact]
+    public async Task CompareAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var request = new ComparisonRequest([Guid.NewGuid(), Guid.NewGuid()], "SideBySide");
+
+        var result = await CreateSut().CompareAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Auth.NotAuthenticated");
+    }
+
+    [Fact]
+    public async Task CompareAsync_WithForeignDocument_ReturnsAccessDenied()
+    {
+        AiTestAuth.Authenticate(_userMock, _userId);
+        var owned = AiTestAuth.NewDocumentOwnedBy(_userId);
+        var foreign = AiTestAuth.NewDocumentOwnedBy(Guid.NewGuid());
+        AiTestAuth.SetupDocuments(_uowMock, owned, foreign);
+
+        var request = new ComparisonRequest([owned.Id, foreign.Id], "SideBySide");
+
+        var result = await CreateSut().CompareAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Document.AccessDenied");
+    }
+
+    [Fact]
     public async Task CompareAsync_WithValidJsonResponse_ReturnsMappedResult()
     {
-        var docId1 = Guid.NewGuid();
-        var docId2 = Guid.NewGuid();
+        var (docId1, docId2) = ArrangeTwoOwnedDocuments();
         var request = new ComparisonRequest([docId1, docId2], "SideBySide");
 
         _searchMock
@@ -97,8 +134,6 @@ public sealed class ComparisonServiceTests
                 new TokenUsage(120, 60, 0.002m),
                 "gpt-4o")));
 
-        _userMock.Setup(u => u.UserId).Returns((Guid?)null);
-
         var result = await CreateSut().CompareAsync(request);
 
         result.IsSuccess.Should().BeTrue();
@@ -112,7 +147,8 @@ public sealed class ComparisonServiceTests
     [Fact]
     public async Task CompareAsync_WhenProviderFails_ReturnsError()
     {
-        var request = new ComparisonRequest([Guid.NewGuid(), Guid.NewGuid()], "Version");
+        var (docId1, docId2) = ArrangeTwoOwnedDocuments();
+        var request = new ComparisonRequest([docId1, docId2], "Version");
 
         _searchMock
             .Setup(s => s.SearchAsync(It.IsAny<SearchRequest>(), It.IsAny<CancellationToken>()))
@@ -137,7 +173,8 @@ public sealed class ComparisonServiceTests
     public async Task CompareAsync_DifferenceTypeMappings_AreCorrect(
         string jsonType, DifferenceType expectedType)
     {
-        var request = new ComparisonRequest([Guid.NewGuid(), Guid.NewGuid()], "Contract");
+        var (docId1, docId2) = ArrangeTwoOwnedDocuments();
+        var request = new ComparisonRequest([docId1, docId2], "Contract");
 
         _searchMock
             .Setup(s => s.SearchAsync(It.IsAny<SearchRequest>(), It.IsAny<CancellationToken>()))
@@ -166,8 +203,6 @@ public sealed class ComparisonServiceTests
             .Setup(p => p.CompleteAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new AiCompletionResult(
                 json, new TokenUsage(10, 5, 0m), "gpt-4o")));
-
-        _userMock.Setup(u => u.UserId).Returns((Guid?)null);
 
         var result = await CreateSut().CompareAsync(request);
 

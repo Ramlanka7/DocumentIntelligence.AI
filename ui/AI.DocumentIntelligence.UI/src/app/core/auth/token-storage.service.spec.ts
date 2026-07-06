@@ -19,17 +19,19 @@ describe('TokenStorageService', () => {
   it('should persist and read back a token response', () => {
     const tokens: AuthTokenResponse = {
       accessToken: 'access',
-      refreshToken: 'refresh',
       expiresAt: new Date().toISOString(),
     };
 
     service.save(tokens);
 
-    expect(service.read()).toEqual(tokens);
+    expect(service.read()).toEqual({
+      accessToken: tokens.accessToken,
+      expiresAt: tokens.expiresAt,
+    });
   });
 
   it('should clear persisted tokens', () => {
-    service.save({ accessToken: 'a', refreshToken: 'r', expiresAt: new Date().toISOString() });
+    service.save({ accessToken: 'a', expiresAt: new Date().toISOString() });
     service.clear();
     expect(service.read()).toBeNull();
   });

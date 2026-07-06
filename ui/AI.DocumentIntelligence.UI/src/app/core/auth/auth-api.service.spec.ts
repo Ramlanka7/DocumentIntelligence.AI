@@ -23,7 +23,6 @@ describe('AuthApiService', () => {
   it('should POST to /auth/login with the given credentials', () => {
     const response: AuthTokenResponse = {
       accessToken: 'access',
-      refreshToken: 'refresh',
       expiresAt: new Date().toISOString(),
     };
 
@@ -34,22 +33,25 @@ describe('AuthApiService', () => {
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/login`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ email: 'user@example.com', password: 'password123' });
+    // The refresh token travels only in the HttpOnly cookie, so credentials must be on.
+    expect(req.request.withCredentials).toBeTrue();
     req.flush(response);
   });
 
-  it('should POST to /auth/refresh with the refresh token', () => {
+  it('should POST to /auth/refresh with an empty body (token travels in the cookie)', () => {
     const response: AuthTokenResponse = {
       accessToken: 'new-access',
-      refreshToken: 'new-refresh',
       expiresAt: new Date().toISOString(),
     };
 
-    service.refresh({ refreshToken: 'old-refresh' }).subscribe((result) => {
+    service.refresh().subscribe((result) => {
       expect(result).toEqual(response);
     });
 
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/refresh`);
     expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    expect(req.request.withCredentials).toBeTrue();
     req.flush(response);
   });
 

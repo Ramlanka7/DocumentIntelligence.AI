@@ -15,6 +15,17 @@ public sealed class InMemoryUserRepository : IUserRepository
     public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<User>>(_users.AsReadOnly());
 
+    public Task<IReadOnlyList<User>> FindNewestAsync(
+        Expression<Func<User, bool>> predicate,
+        int maxResults,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<User>>(
+            _users.AsQueryable()
+                .Where(predicate)
+                .OrderByDescending(e => e.CreatedAtUtc)
+                .Take(maxResults)
+                .ToList());
+
     public Task<IReadOnlyList<User>> FindAsync(
         Expression<Func<User, bool>> predicate,
         CancellationToken cancellationToken = default) =>

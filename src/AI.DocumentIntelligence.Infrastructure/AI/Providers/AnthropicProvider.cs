@@ -1,11 +1,11 @@
 using System.Diagnostics;
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
 using AI.DocumentIntelligence.Application.Abstractions.AI;
 using AI.DocumentIntelligence.Application.Contracts.AI;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Infrastructure.AI.Options;
 using AI.DocumentIntelligence.Infrastructure.Telemetry;
+using Anthropic.SDK;
+using Anthropic.SDK.Messaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using DomainError = AI.DocumentIntelligence.Domain.Common.Error;
@@ -90,7 +90,11 @@ internal sealed partial class AnthropicProvider : IAIProvider, IDisposable
                 Messages = conversationMessages
             };
 
-            var response = await _client.Messages.GetClaudeMessageAsync(parameters, cancellationToken);
+            // Unlike the Azure/OpenAI SDK clients (which retry transient failures internally),
+            // Anthropic.SDK performs no retries — apply our own for network-level transients.
+            var response = await ExecuteWithRetryAsync(
+                () => _client.Messages.GetClaudeMessageAsync(parameters, cancellationToken),
+                cancellationToken);
 
             var text = response.Content.OfType<TextContent>().FirstOrDefault()?.Text ?? string.Empty;
 
@@ -136,6 +140,34 @@ internal sealed partial class AnthropicProvider : IAIProvider, IDisposable
 
     public void Dispose() => _client.Dispose();
 
+    /// <summary>
+    /// Retries network-level transient failures (connection resets, DNS blips, HttpClient
+    /// timeouts) with exponential backoff. Caller cancellation is never retried.
+    /// </summary>
+    private async Task<T> ExecuteWithRetryAsync<T>(
+        Func<Task<T>> operation,
+        CancellationToken cancellationToken)
+    {
+        const int MaxAttempts = 3;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex) when (attempt < MaxAttempts && IsTransient(ex, cancellationToken))
+            {
+                LogTransientRetry(_logger, attempt, MaxAttempts, ex);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)), cancellationToken);
+            }
+        }
+    }
+
+    private static bool IsTransient(Exception ex, CancellationToken cancellationToken) =>
+        ex is HttpRequestException or IOException
+        || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested);
+
     private void RecordCompletionMetrics(
         double durationMs,
         int promptTokens,
@@ -176,4 +208,9 @@ internal sealed partial class AnthropicProvider : IAIProvider, IDisposable
     [LoggerMessage(Level = LogLevel.Error,
         Message = "Unexpected error during Anthropic chat completion")]
     private static partial void LogUnexpectedError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Transient Anthropic failure on attempt {Attempt}/{MaxAttempts} — retrying")]
+    private static partial void LogTransientRetry(
+        ILogger logger, int attempt, int maxAttempts, Exception exception);
 }

@@ -37,6 +37,17 @@ internal class Repository<T>(AppDbContext context) : IRepository<T>
         await DbSet.AsNoTracking().Where(predicate).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<T>> FindNewestAsync(
+        Expression<Func<T, bool>> predicate,
+        int maxResults,
+        CancellationToken cancellationToken = default) =>
+        await DbSet.AsNoTracking()
+            .Where(predicate)
+            .OrderByDescending(e => e.CreatedAtUtc)
+            .Take(maxResults)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public async Task AddAsync(T entity, CancellationToken cancellationToken = default) =>
         await DbSet.AddAsync(entity, cancellationToken);
 

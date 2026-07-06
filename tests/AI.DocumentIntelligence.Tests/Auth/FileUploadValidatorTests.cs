@@ -72,6 +72,44 @@ public sealed class FileUploadValidatorTests
     }
 
     [Fact]
+    public void Validate_ZipRenamedToPdf_ReturnsUnsupported()
+    {
+        // A ZIP archive masquerading as a PDF: extension and magic bytes disagree.
+        var file = new UploadedFile("fake.pdf", "application/pdf", 100, 1, ZipStream());
+
+        var result = CreateValidator().Validate([file]);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Code.Should().Be(DomainErrors.Upload.UnsupportedFileType.Code);
+    }
+
+    [Fact]
+    public void Validate_PdfRenamedToDocx_ReturnsUnsupported()
+    {
+        var file = new UploadedFile(
+            "fake.docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            100, 1, PdfStream());
+
+        var result = CreateValidator().Validate([file]);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Code.Should().Be(DomainErrors.Upload.UnsupportedFileType.Code);
+    }
+
+    [Fact]
+    public void Validate_ZipWithUnknownExtension_ReturnsUnsupported()
+    {
+        // Valid ZIP magic but an extension the platform does not process.
+        var file = new UploadedFile("archive.zip", "application/zip", 100, 1, ZipStream());
+
+        var result = CreateValidator().Validate([file]);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Code.Should().Be(DomainErrors.Upload.UnsupportedFileType.Code);
+    }
+
+    [Fact]
     public void Validate_TooManyDocuments_ReturnsFailure()
     {
         var files = Enumerable.Range(0, 5).Select(_ => MakePdf()).ToList();

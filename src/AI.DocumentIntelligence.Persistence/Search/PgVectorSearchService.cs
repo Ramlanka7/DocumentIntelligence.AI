@@ -92,7 +92,7 @@ internal sealed partial class PgVectorSearchService : ISearchService
                     c.Content,
                     c.PageNumber,
                     c.ParagraphReference,
-                    c.Embedding.Count);   // TokenCount ≈ embedding dimension for now
+                    EstimateTokenCount(c.Content));
 
                 chunk.SetEmbedding(c.Embedding);
                 return chunk;
@@ -149,7 +149,7 @@ internal sealed partial class PgVectorSearchService : ISearchService
         if (embeddingResult.IsFailure)
         {
             sw.Stop();
-            LogEmbeddingFailed(_logger, request.Query, embeddingResult.Error.Description);
+            LogEmbeddingFailed(_logger, request.Query.Length, embeddingResult.Error.Description);
             return Result.Failure<IReadOnlyList<SearchHit>>(embeddingResult.Error);
         }
 
@@ -212,7 +212,7 @@ internal sealed partial class PgVectorSearchService : ISearchService
             }).ToList();
 
             sw.Stop();
-            LogSearched(_logger, request.Query, hits.Count, sw.Elapsed.TotalMilliseconds);
+            LogSearched(_logger, request.Query.Length, hits.Count, sw.Elapsed.TotalMilliseconds);
             return Result.Success<IReadOnlyList<SearchHit>>(hits);
         }
         catch (Exception ex)
@@ -250,6 +250,13 @@ internal sealed partial class PgVectorSearchService : ISearchService
         }
     }
 
+    /// <summary>
+    /// Cheap token estimate (~4 characters per token for English text). Good enough for
+    /// cost/size analytics; exact counts would require the model tokenizer.
+    /// </summary>
+    private static int EstimateTokenCount(string content) =>
+        Math.Max(1, content.Length / 4);
+
     // ---- Structured logger messages ----
 
     [LoggerMessage(Level = LogLevel.Debug,
@@ -264,13 +271,15 @@ internal sealed partial class PgVectorSearchService : ISearchService
         Message = "pgvector: indexing failed")]
     private static partial void LogIndexFailed(ILogger logger, Exception exception);
 
+    // Query TEXT is deliberately not logged — user search queries can contain confidential
+    // document content / PII; only the length is recorded for diagnostics.
     [LoggerMessage(Level = LogLevel.Error,
-        Message = "pgvector: embedding generation failed for query '{Query}': {Error}")]
-    private static partial void LogEmbeddingFailed(ILogger logger, string query, string error);
+        Message = "pgvector: embedding generation failed for query ({QueryLength} chars): {Error}")]
+    private static partial void LogEmbeddingFailed(ILogger logger, int queryLength, string error);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "pgvector: query '{Query}' returned {Count} hit(s) in {ElapsedMs:F1} ms")]
-    private static partial void LogSearched(ILogger logger, string query, int count, double elapsedMs);
+        Message = "pgvector: query ({QueryLength} chars) returned {Count} hit(s) in {ElapsedMs:F1} ms")]
+    private static partial void LogSearched(ILogger logger, int queryLength, int count, double elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Error,
         Message = "pgvector: search query failed")]

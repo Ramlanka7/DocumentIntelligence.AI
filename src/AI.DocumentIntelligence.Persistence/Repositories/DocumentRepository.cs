@@ -1,4 +1,5 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
+using AI.DocumentIntelligence.Application.Common;
 using AI.DocumentIntelligence.Domain.Entities;
 using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -17,5 +18,7 @@ internal sealed class DocumentRepository(AppDbContext context)
         await DbSet
             .AsNoTracking()
             .Where(d => d.OwnerId == ownerId)
+            .OrderByDescending(d => d.CreatedAtUtc)
+            .Take(QueryLimits.MaxListResults)
             .ToListAsync(ct);
 }

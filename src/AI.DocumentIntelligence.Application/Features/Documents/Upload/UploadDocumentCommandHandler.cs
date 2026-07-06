@@ -1,21 +1,21 @@
 using AI.DocumentIntelligence.Application.Abstractions.Documents;
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
+using AI.DocumentIntelligence.Application.Abstractions.Ingestion;
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Application.Abstractions.Storage;
 using AI.DocumentIntelligence.Application.Common.Messaging;
-using AI.DocumentIntelligence.Application.Features.RAG.Ingest;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Domain.Entities;
 using AI.DocumentIntelligence.Domain.Enums;
 using AI.DocumentIntelligence.Domain.Errors;
 using AI.DocumentIntelligence.Domain.ValueObjects;
-using MediatR;
 
 namespace AI.DocumentIntelligence.Application.Features.Documents.Upload;
 
 /// <summary>
-/// Validates → processes (extract text) → stores → persists → ingests a single uploaded document.
-/// Steps: validate file, detect type, extract text, save to storage, create domain entity, dispatch ingest.
+/// Validates → processes (extract text) → stores → persists → queues RAG ingestion.
+/// The document is returned in <c>Processing</c> state; the background ingestion worker
+/// moves it to <c>Processed</c> (or <c>Failed</c>) once chunking/embedding/indexing complete.
 /// </summary>
 internal sealed class UploadDocumentCommandHandler(
     IFileUploadValidator fileUploadValidator,
@@ -24,7 +24,7 @@ internal sealed class UploadDocumentCommandHandler(
     IDocumentRepository documentRepository,
     IUnitOfWork unitOfWork,
     ICurrentUser currentUser,
-    ISender sender)
+    IIngestionScheduler ingestionScheduler)
     : ICommandHandler<UploadDocumentCommand, UploadDocumentResponse>
 {
     public async Task<Result<UploadDocumentResponse>> Handle(
@@ -104,17 +104,14 @@ internal sealed class UploadDocumentCommandHandler(
 
         var document = Document.Create(ownerId, metadata, documentType, storageResult.Value);
         document.MarkProcessing();
-        document.MarkProcessed(extractionResult.Value.FullText);
 
         await documentRepository.AddAsync(document, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 6. Dispatch the RAG ingest pipeline (fire-and-forget within the same request context)
-        await sender.Send(
-            new IngestDocumentCommand(
-                document.Id,
-                request.FileName,
-                extractionResult.Value),
+        // 6. Schedule RAG ingestion. The background worker marks the document Processed or
+        //    Failed when chunking/embedding/indexing finish — the HTTP request returns now.
+        await ingestionScheduler.ScheduleAsync(
+            new IngestionJob(document.Id, request.FileName, extractionResult.Value),
             cancellationToken);
 
         return Result.Success(

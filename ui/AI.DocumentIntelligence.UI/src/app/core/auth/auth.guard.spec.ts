@@ -29,7 +29,7 @@ describe('authGuard', () => {
       role: 'Viewer',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    store.applyTokens(token, 'refresh-token', new Date(Date.now() + 3600_000).toISOString());
+    store.applyTokens(token, new Date(Date.now() + 3600_000).toISOString());
 
     const result = TestBed.runInInjectionContext(() =>
       authGuard({} as ActivatedRouteSnapshot, { url: '/analysis' } as RouterStateSnapshot),

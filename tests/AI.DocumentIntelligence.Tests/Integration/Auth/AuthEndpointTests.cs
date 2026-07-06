@@ -41,7 +41,13 @@ public sealed class AuthEndpointTests
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         json.GetProperty("accessToken").GetString().Should().NotBeNullOrWhiteSpace();
-        json.GetProperty("refreshToken").GetString().Should().NotBeNullOrWhiteSpace();
+
+        // The refresh token must NOT be exposed in the body — it travels only as an
+        // HttpOnly cookie so client-side script (and any XSS payload) can never read it.
+        json.GetProperty("refreshToken").GetString().Should().BeEmpty();
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
+        cookies.Should().Contain(c =>
+            c.StartsWith("refresh_token=") && c.Contains("httponly", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

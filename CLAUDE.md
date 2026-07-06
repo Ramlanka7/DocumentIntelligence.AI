@@ -38,7 +38,8 @@ src/
   AI.DocumentIntelligence.Infrastructure # AI providers, Azure AI Search, doc processors, auth
   AI.DocumentIntelligence.Persistence    # EF Core DbContext, configs, repositories, migrations
   AI.DocumentIntelligence.Tests          # Unit + integration tests
-frontend/                                # Angular 20 workspace
+ui/
+  AI.DocumentIntelligence.UI             # Angular 20 workspace
 ```
 
 ## Conventions
@@ -61,7 +62,7 @@ For role-specific work, delegate to the project subagents instead of re-describi
 - **architecture-reviewer** — read-only Clean Architecture / SOLID / CQRS / convention review; run at the end of each task.
 
 ## Definition of done (before you call a change "done")
-- The affected project **builds**, and its **tests pass** (`dotnet test` / `frontend` `npm test`).
+- The affected project **builds**, and its **tests pass** (`dotnet test` / UI `npm test`).
 - Every acceptance criterion in the task brief is satisfied; AI responses carry citations.
 - Run **architecture-reviewer** on the diff.
 - Update the task's status to `Done` in [.claude/tasks/INDEX.md](.claude/tasks/INDEX.md).
@@ -79,7 +80,7 @@ For role-specific work, delegate to the project subagents instead of re-describi
   `dotnet ef migrations add <Name> --project src/AI.DocumentIntelligence.Persistence --startup-project src/AI.DocumentIntelligence.Api`
   `dotnet ef database update --project src/AI.DocumentIntelligence.Persistence --startup-project src/AI.DocumentIntelligence.Api`
 
-### Frontend (in `frontend/`)
+### Frontend (in `ui/AI.DocumentIntelligence.UI/`)
 - Install (reproducible, CI-equivalent): `npm ci`
 - Build: `npm run build`
 - Test (headless): `npm test -- --watch=false --browsers=ChromeHeadless`

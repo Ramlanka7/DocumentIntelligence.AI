@@ -148,7 +148,7 @@ describe('ComparisonApiService', () => {
     expect(types).not.toContain('contract' as never);
   });
 
-  it('runComparison should upload then POST to /comparison — not async poll', fakeAsync(() => {
+  it('runComparison should upload, wait for processing, then POST to /comparison', fakeAsync(() => {
     const file1 = new File(['a'], 'doc1.pdf', { type: 'application/pdf' });
     const file2 = new File(['b'], 'doc2.pdf', { type: 'application/pdf' });
     service.runComparison([file1, file2], 'Contract');
@@ -162,10 +162,16 @@ describe('ComparisonApiService', () => {
 
     // Second upload
     const upload2 = httpMock.expectOne(`${API}/documents`);
-    upload2.flush({ documentId: 'id-2', fileName: 'doc2.pdf', status: 'Pending' });
+    upload2.flush({ documentId: 'id-2', fileName: 'doc2.pdf', status: 'Processing' });
     tick();
 
-    // Synchronous comparison POST — NO polling endpoints called
+    // Readiness polls: the service waits for background ingestion to finish.
+    const status1 = httpMock.expectOne(`${API}/documents/id-1`);
+    status1.flush({ id: 'id-1', status: 'Processed' });
+    const status2 = httpMock.expectOne(`${API}/documents/id-2`);
+    status2.flush({ id: 'id-2', status: 'Processed' });
+    tick();
+
     const cmpReq = httpMock.expectOne(`${API}/comparison`);
     expect(cmpReq.request.body.documentIds).toEqual(['id-1', 'id-2']);
     expect(cmpReq.request.body.comparisonType).toBe('Contract');
@@ -196,9 +202,14 @@ describe('ComparisonApiService', () => {
     const file2 = new File(['b'], 'doc2.pdf', { type: 'application/pdf' });
     service.runComparison([file1, file2], 'Policy');
 
-    httpMock.expectOne(`${API}/documents`).flush({ documentId: 'id-1', fileName: 'doc1.pdf', status: 'Pending' });
+    httpMock.expectOne(`${API}/documents`).flush({ documentId: 'id-1', fileName: 'doc1.pdf', status: 'Processing' });
     tick();
-    httpMock.expectOne(`${API}/documents`).flush({ documentId: 'id-2', fileName: 'doc2.pdf', status: 'Pending' });
+    httpMock.expectOne(`${API}/documents`).flush({ documentId: 'id-2', fileName: 'doc2.pdf', status: 'Processing' });
+    tick();
+
+    // Readiness polls complete before the comparison request is issued.
+    httpMock.expectOne(`${API}/documents/id-1`).flush({ id: 'id-1', status: 'Processed' });
+    httpMock.expectOne(`${API}/documents/id-2`).flush({ id: 'id-2', status: 'Processed' });
     tick();
 
     const req = httpMock.expectOne(`${API}/comparison`);

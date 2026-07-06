@@ -1,15 +1,14 @@
 using AI.DocumentIntelligence.Application.Abstractions.Documents;
 using AI.DocumentIntelligence.Application.Abstractions.Identity;
+using AI.DocumentIntelligence.Application.Abstractions.Ingestion;
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
 using AI.DocumentIntelligence.Application.Abstractions.Storage;
 using AI.DocumentIntelligence.Application.Contracts.Documents;
 using AI.DocumentIntelligence.Application.Features.Documents.Upload;
-using AI.DocumentIntelligence.Application.Features.RAG.Ingest;
 using AI.DocumentIntelligence.Domain.Common;
 using AI.DocumentIntelligence.Domain.Enums;
 using AI.DocumentIntelligence.Domain.Errors;
 using FluentAssertions;
-using MediatR;
 using Moq;
 
 namespace AI.DocumentIntelligence.Tests.Documents;
@@ -23,11 +22,11 @@ public sealed class UploadDocumentCommandHandlerTests
     private readonly Mock<IDocumentRepository> _documentRepo = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
-    private readonly Mock<ISender> _sender = new();
+    private readonly Mock<IIngestionScheduler> _ingestionScheduler = new();
 
     private UploadDocumentCommandHandler CreateHandler() =>
         new(_validator.Object, _processorFactory.Object, _fileStorage.Object,
-            _documentRepo.Object, _uow.Object, _currentUser.Object, _sender.Object);
+            _documentRepo.Object, _uow.Object, _currentUser.Object, _ingestionScheduler.Object);
 
     private static UploadDocumentCommand TextFileCommand(string fileName = "sample.txt") =>
         new(fileName, "text/plain", 100, new MemoryStream("Hello world"u8.ToArray()));
@@ -68,8 +67,8 @@ public sealed class UploadDocumentCommandHandlerTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        _sender.Setup(s => s.Send(It.IsAny<IngestDocumentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+        _ingestionScheduler.Setup(q => q.ScheduleAsync(It.IsAny<IngestionJob>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
     }
 
     [Fact]
@@ -81,7 +80,8 @@ public sealed class UploadDocumentCommandHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         result.Value.FileName.Should().Be("sample.txt");
-        result.Value.Status.Should().Be(DocumentStatus.Processed);
+        // Ingestion is asynchronous — upload returns the document still Processing.
+        result.Value.Status.Should().Be(DocumentStatus.Processing);
     }
 
     [Fact]
@@ -143,14 +143,14 @@ public sealed class UploadDocumentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidUpload_IngestsDocument()
+    public async Task Handle_ValidUpload_QueuesIngestion()
     {
         SetupValidUpload();
 
         await CreateHandler().Handle(TextFileCommand(), default);
 
-        _sender.Verify(
-            s => s.Send(It.IsAny<IngestDocumentCommand>(), It.IsAny<CancellationToken>()),
+        _ingestionScheduler.Verify(
+            q => q.ScheduleAsync(It.IsAny<IngestionJob>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

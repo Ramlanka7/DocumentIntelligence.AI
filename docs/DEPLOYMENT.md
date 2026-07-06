@@ -60,7 +60,25 @@ all 10 tables, including `document_chunks.embedding vector(1536)` with an HNSW c
 
 The CD pipeline runs migrations automatically before deploying (`.github/workflows/cd.yml`, `migrate` job).
 
-## 3. Configuration & secrets
+## 3. First-run bootstrap (initial admin user)
+
+Registration (`POST /auth/register`) requires an existing **Admin**, so a fresh database
+must be seeded with one before anyone can log in:
+
+1. Set `Database__SeedOnStartup=true` and provide `Seed__AdminPassword` (and optionally
+   `Seed__AdminEmail`, default `admin@documentintelligence.local`) via your secret store.
+2. Start the API after migrations have been applied (locally, `Database__AutoMigrate=true`
+   handles this; docker-compose enables both by default — just set `Seed__AdminPassword`
+   in `.env`).
+3. Log in as the seeded admin and create real users via `POST /auth/register`; then
+   consider disabling `Database__SeedOnStartup`.
+
+The seeder is idempotent (a no-op once the admin exists) and stores only a BCrypt hash.
+In **Production**, enabling seeding without `Seed__AdminPassword` fails startup rather
+than falling back to any default password. Seeding is the only bootstrap path — there is
+no hardcoded account.
+
+## 4. Configuration & secrets
 
 Configuration binds from environment variables (double-underscore = nested key). **Never commit real
 secrets** — use user-secrets locally and your platform's secret store (Key Vault, GitHub Actions
@@ -77,7 +95,7 @@ secrets, etc.) in CI/CD.
 | `Ai__ProviderName` | Optional | Switch `IAIProvider` (AzureOpenAI / OpenAI / Anthropic / Ollama). |
 | `ApplicationInsights__ConnectionString` / OTLP exporter vars | Optional | Observability exporters activate only when configured. |
 
-## 4. Health, observability, security
+## 5. Health, observability, security
 
 - **Health:** `/health` (full), `/health/live` (liveness, no deps), `/health/ready` (readiness — DB,
   search, AI). Wire your orchestrator's liveness/readiness probes to `/health/live` and `/health/ready`.
@@ -87,7 +105,7 @@ secrets, etc.) in CI/CD.
   (Admin/Analyst/Viewer); per-user rate limiting (60/min global, 10/min on auth endpoints); audit
   logging; file-type/size validation on upload; CORS restricted to the configured origin.
 
-## 5. CI/CD (GitHub Actions)
+## 6. CI/CD (GitHub Actions)
 
 - **`ci.yml`** (on PR/push): `dotnet format --verify-no-changes`, backend build + `dotnet test`,
   frontend `npm ci` + build + headless tests, and a no-push Docker image build.
@@ -96,7 +114,7 @@ secrets, etc.) in CI/CD.
 - **`cd.yml`** (on release/main): builds and pushes API + frontend images to GHCR, runs EF Core
   migrations against the target database, then deploys.
 
-## 6. Production checklist
+## 7. Production checklist
 
 - [ ] Strong `Jwt__SecretKey` and all secrets sourced from a secret store (not `.env`).
 - [ ] `ASPNETCORE_ENVIRONMENT=Production` (Swagger disabled; enforced by the prod overlay).
@@ -110,6 +128,15 @@ secrets, etc.) in CI/CD.
 
 - **Refresh tokens are single-session per user** (one active refresh token; logging in elsewhere
   revokes the previous session). A `RefreshToken` table for multi-device sessions is a future enhancement.
+  Refresh tokens are delivered to browsers exclusively as an `HttpOnly; Secure; SameSite=Strict`
+  cookie scoped to `/api/v1/auth` — they never appear in response bodies or Web Storage.
+- **Document ingestion is asynchronous and in-process** (bounded channel + background worker).
+  Jobs do not survive an unclean shutdown; on restart, documents stranded in `Processing` are
+  marked `Failed` with a re-upload message. Swap `ChannelIngestionScheduler` for a durable queue
+  (Azure Storage Queue / Service Bus) behind `IIngestionScheduler` for multi-instance ingestion.
+- **Rate limiting is per-instance** (in-process fixed window). With multiple replicas the
+  effective limit is N × the configured value; move to a gateway or Redis-backed limiter when
+  scaling out matters.
 - **Combined-page limit (500 pages across a session)** is not yet enforced server-side; the UI caps
   uploads at 4 documents. Add a session-level page-count guard for strict enforcement.
 - **API integration tests use in-memory fakes** for speed; real-DB coverage is provided by the
