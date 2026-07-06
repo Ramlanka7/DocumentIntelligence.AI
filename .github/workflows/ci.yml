@@ -45,29 +45,38 @@ jobs:
       - name: Restore packages
         run: dotnet restore
 
+      # Fail on any known-vulnerable NuGet package (direct or transitive).
+      - name: Dependency vulnerability scan (NuGet)
+        run: |
+          OUTPUT=$(dotnet list package --vulnerable --include-transitive 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "has the following vulnerable packages"; then
+            echo "FAIL: vulnerable NuGet package(s) detected."
+            exit 1
+          fi
+          echo "PASS: no known-vulnerable NuGet packages."
+
       # EnforceCodeStyleInBuild + TreatWarningsAsErrors are on in Directory.Build.props.
       - name: Build (Release, zero-warning policy)
         run: dotnet build --no-restore --configuration Release
 
       # dotnet format --verify-no-changes exits non-zero if any file would change,
-      # acting as a lint gate.  Run after a successful build so formatting violations
-      # are reported separately from compile errors.
-      # Soft gate: dotnet format reports IDE1006 naming violations that exist
-      # across 59+ files from prior tasks (T01–T16).  continue-on-error keeps
-      # CI green while surfacing violations in the job summary.  Harden to
-      # continue-on-error: false once the codebase naming sweep is complete.
+      # acting as a hard lint gate. Run after a successful build so formatting
+      # violations are reported separately from compile errors.
       - name: Format / style check
         run: dotnet format --verify-no-changes
-        continue-on-error: true
 
       # coverlet.collector is referenced by the test project; XPlat Code Coverage
       # produces Cobertura XML consumed by ReportGenerator in the next step.
+      # coverlet.runsettings excludes EF migrations (generated schema code) so the
+      # coverage number measures hand-written code only.
       - name: Run tests with coverage collection
         run: |
           dotnet test \
             --no-build \
             --configuration Release \
             --collect:"XPlat Code Coverage" \
+            --settings coverlet.runsettings \
             --results-directory ./TestResults \
             --logger "trx;LogFileName=test-results.trx"
         env:
@@ -103,14 +112,14 @@ jobs:
           echo "---- Coverage Summary ----"
           cat CoverageReport/Summary.txt
 
-      # Fail the build if line coverage is below 45 %.
-      # The threshold can be raised incrementally as coverage improves.
-      - name: Coverage gate (>= 45 % line coverage)
+      # Fail the build if line coverage is below 60 % (currently ~72 % with generated
+      # code excluded). Raise incrementally as coverage improves; never lower it.
+      - name: Coverage gate (>= 60 % line coverage)
         run: |
           COVERAGE=$(grep -oP '(?<=Line coverage: )\d+(\.\d+)?(?=%)' CoverageReport/Summary.txt || echo "0")
           echo "Measured line coverage: ${COVERAGE}%"
-          if awk "BEGIN {exit !($COVERAGE < 45)}"; then
-            echo "FAIL: coverage ${COVERAGE}% is below the 45% threshold."
+          if awk "BEGIN {exit !($COVERAGE < 60)}"; then
+            echo "FAIL: coverage ${COVERAGE}% is below the 60% threshold."
             exit 1
           fi
           echo "PASS: coverage ${COVERAGE}% meets the minimum threshold."
@@ -149,6 +158,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fail on high/critical advisories in production dependencies.
+      # Dev-only tooling advisories are surfaced but not blocking.
+      - name: Dependency vulnerability scan (npm)
+        run: npm audit --omit=dev --audit-level=high
+
       # Production build validates AOT compilation, budgets, and tree-shaking.
       - name: Build (production)
         run: npm run build -- --configuration production
@@ -157,6 +171,24 @@ jobs:
       # no extra setup needed.
       - name: Run tests (headless Chrome)
         run: npm test -- --watch=false --browsers=ChromeHeadless
+
+  # =========================================================================
+  # Secret scanning — full git history
+  # =========================================================================
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (full history for historical leak detection)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # =========================================================================
   # Docker build + compose config validation
@@ -176,15 +208,28 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # Build but do not push — validates the Dockerfile and all COPY paths.
+      # load: true keeps the image in the local daemon so Trivy can scan it below.
       - name: Build API image (no push)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: false
+          load: true
           tags: ${{ env.REGISTRY }}/ai-document-intelligence-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Fail the pipeline on HIGH/CRITICAL vulnerabilities with an available fix.
+      - name: Scan API image (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/ai-document-intelligence-api:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
 
       - name: Build frontend image (no push)
         uses: docker/build-push-action@v6

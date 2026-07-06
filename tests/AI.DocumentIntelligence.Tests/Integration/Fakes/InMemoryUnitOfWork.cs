@@ -57,6 +57,18 @@ public sealed class GenericInMemoryRepository<T> : IRepository<T>
         Task.FromResult<IReadOnlyList<T>>(
             _store.Values.AsQueryable().Where(predicate).ToList().AsReadOnly());
 
+    public Task<IReadOnlyList<T>> FindNewestAsync(
+        Expression<Func<T, bool>> predicate,
+        int maxResults,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<T>>(
+            _store.Values.AsQueryable()
+                .Where(predicate)
+                .OrderByDescending(e => e.CreatedAtUtc)
+                .Take(maxResults)
+                .ToList()
+                .AsReadOnly());
+
     public Task AddAsync(T entity, CancellationToken cancellationToken = default)
     {
         _store[entity.Id] = entity;

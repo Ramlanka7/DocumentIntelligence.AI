@@ -15,6 +15,17 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     public Task<IReadOnlyList<Document>> GetAllAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<Document>>(_documents.AsReadOnly());
 
+    public Task<IReadOnlyList<Document>> FindNewestAsync(
+        Expression<Func<Document, bool>> predicate,
+        int maxResults,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<Document>>(
+            _documents.AsQueryable()
+                .Where(predicate)
+                .OrderByDescending(e => e.CreatedAtUtc)
+                .Take(maxResults)
+                .ToList());
+
     public Task<IReadOnlyList<Document>> FindAsync(
         Expression<Func<Document, bool>> predicate,
         CancellationToken cancellationToken = default) =>

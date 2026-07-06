@@ -3,12 +3,15 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthTokenResponse, LoginRequest, RefreshTokenRequest, RegisterRequest } from '../models/auth.model';
+import { AuthTokenResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
 import { SKIP_AUTH_REFRESH } from '../interceptors/auth-context.token';
 
 /**
  * Typed HTTP client for the `/api/v1/auth` endpoints (T08 `AuthController`).
  * Kept deliberately thin — no business logic, only request/response typing.
+ *
+ * `withCredentials` is set on login/refresh/logout so the browser stores and returns the
+ * HttpOnly refresh-token cookie; the token itself is never visible to this code.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
@@ -18,12 +21,15 @@ export class AuthApiService {
   login(request: LoginRequest): Observable<AuthTokenResponse> {
     return this.http.post<AuthTokenResponse>(`${this.baseUrl}/login`, request, {
       context: new HttpContext().set(SKIP_AUTH_REFRESH, true),
+      withCredentials: true,
     });
   }
 
-  refresh(request: RefreshTokenRequest): Observable<AuthTokenResponse> {
-    return this.http.post<AuthTokenResponse>(`${this.baseUrl}/refresh`, request, {
+  /** The refresh token travels in the HttpOnly cookie — the body is intentionally empty. */
+  refresh(): Observable<AuthTokenResponse> {
+    return this.http.post<AuthTokenResponse>(`${this.baseUrl}/refresh`, {}, {
       context: new HttpContext().set(SKIP_AUTH_REFRESH, true),
+      withCredentials: true,
     });
   }
 
@@ -32,6 +38,7 @@ export class AuthApiService {
     // the session is being torn down either way, so skip straight to clearing it client-side.
     return this.http.post<void>(`${this.baseUrl}/logout`, {}, {
       context: new HttpContext().set(SKIP_AUTH_REFRESH, true),
+      withCredentials: true,
     });
   }
 

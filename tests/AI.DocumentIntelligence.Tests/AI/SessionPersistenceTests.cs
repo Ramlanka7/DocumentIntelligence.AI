@@ -31,10 +31,18 @@ public sealed class SessionPersistenceTests
 
     public SessionPersistenceTests()
     {
-        _userMock.Setup(u => u.UserId).Returns(_userId);
+        AiTestAuth.Authenticate(_userMock, _userId);
         _searchMock
             .Setup(s => s.SearchAsync(It.IsAny<SearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<IReadOnlyList<SearchHit>>([]));
+    }
+
+    /// <summary>Seeds a document owned by the test user so the ownership check passes.</summary>
+    private Guid SeedOwnedDocument(InMemoryUnitOfWork uow)
+    {
+        var document = AiTestAuth.NewDocumentOwnedBy(_userId);
+        ((IUnitOfWork)uow).Repository<Document>().AddAsync(document).GetAwaiter().GetResult();
+        return document.Id;
     }
 
     // ---- Analysis ----
@@ -42,8 +50,8 @@ public sealed class SessionPersistenceTests
     [Fact]
     public async Task AnalyzeAsync_WithUserId_PersistsAnalysisSessionAndUsageMetric()
     {
-        var docId = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId = SeedOwnedDocument(uow);
 
         var sut = new AnalysisService(
             _providerMock.Object,
@@ -103,8 +111,8 @@ public sealed class SessionPersistenceTests
     [Fact]
     public async Task AnalyzeAsync_WhenProviderFails_MarksSessionFailedButStillReturnsError()
     {
-        var docId = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId = SeedOwnedDocument(uow);
 
         var sut = new AnalysisService(
             _providerMock.Object,
@@ -132,9 +140,9 @@ public sealed class SessionPersistenceTests
     [Fact]
     public async Task CompareAsync_WithUserId_PersistsComparisonSessionAndUsageMetric()
     {
-        var docId1 = Guid.NewGuid();
-        var docId2 = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId1 = SeedOwnedDocument(uow);
+        var docId2 = SeedOwnedDocument(uow);
 
         var sut = new ComparisonService(
             _providerMock.Object,
@@ -204,6 +212,8 @@ public sealed class SessionPersistenceTests
     public async Task CompareAsync_WhenProviderFails_MarksSessionFailedButStillReturnsError()
     {
         var uow = new InMemoryUnitOfWork();
+        var docId1 = SeedOwnedDocument(uow);
+        var docId2 = SeedOwnedDocument(uow);
 
         var sut = new ComparisonService(
             _providerMock.Object,
@@ -216,7 +226,7 @@ public sealed class SessionPersistenceTests
             .Setup(p => p.CompleteAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<AiCompletionResult>(Error.Failure("provider.error", "down")));
 
-        var result = await sut.CompareAsync(new ComparisonRequest([Guid.NewGuid(), Guid.NewGuid()], "Contract"));
+        var result = await sut.CompareAsync(new ComparisonRequest([docId1, docId2], "Contract"));
 
         result.IsFailure.Should().BeTrue();
 
@@ -230,8 +240,8 @@ public sealed class SessionPersistenceTests
     [Fact]
     public async Task AskAsync_WithUserId_CreatesNewChatSessionAndPersistsMessagesAndUsageMetric()
     {
-        var docId = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId = SeedOwnedDocument(uow);
 
         var sut = new ChatService(
             _providerMock.Object,
@@ -297,8 +307,8 @@ public sealed class SessionPersistenceTests
     [Fact]
     public async Task AskAsync_WithExistingSessionId_AppendsMessagesToExistingSession()
     {
-        var docId = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId = SeedOwnedDocument(uow);
 
         var sut = new ChatService(
             _providerMock.Object,
@@ -336,10 +346,11 @@ public sealed class SessionPersistenceTests
     }
 
     [Fact]
-    public async Task AskAsync_WithoutUserId_DoesNotPersistAnySession()
+    public async Task AskAsync_WithoutUserId_IsRejectedAndPersistsNothing()
     {
-        var docId = Guid.NewGuid();
         var uow = new InMemoryUnitOfWork();
+        var docId = SeedOwnedDocument(uow);
+        _userMock.Setup(u => u.IsAuthenticated).Returns(false);
         _userMock.Setup(u => u.UserId).Returns((Guid?)null);
 
         var sut = new ChatService(
@@ -349,18 +360,12 @@ public sealed class SessionPersistenceTests
             _userMock.Object,
             NullLogger<ChatService>.Instance);
 
-        var json = """{"answer": "Answer without user.", "citations": []}""";
-
-        _providerMock
-            .Setup(p => p.CompleteAsync(It.IsAny<AiCompletionRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new AiCompletionResult(json, new TokenUsage(30, 15, 0m), "gpt-4o")));
-
         var request = new ChatRequest(Guid.NewGuid(), [docId], "Anonymous question?", []);
         var result = await sut.AskAsync(request);
 
-        result.IsSuccess.Should().BeTrue();
-
-        // No sessions or metrics when there is no authenticated user
+        // Unauthenticated callers are rejected before any AI call or persistence.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Auth.NotAuthenticated");
         uow.GetRepository<ChatSession>().All.Should().BeEmpty();
         uow.GetRepository<AiUsageMetric>().All.Should().BeEmpty();
     }

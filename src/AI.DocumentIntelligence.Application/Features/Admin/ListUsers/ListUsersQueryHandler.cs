@@ -1,4 +1,5 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
+using AI.DocumentIntelligence.Application.Common;
 using AI.DocumentIntelligence.Application.Common.Messaging;
 using AI.DocumentIntelligence.Domain.Common;
 
@@ -12,7 +13,8 @@ internal sealed class ListUsersQueryHandler(IUserRepository userRepository)
         ListUsersQuery request,
         CancellationToken cancellationToken)
     {
-        var users = await userRepository.GetAllAsync(cancellationToken);
+        var users = await userRepository.FindNewestAsync(
+            _ => true, QueryLimits.MaxListResults, cancellationToken);
 
         var dtos = users
             .Select(u => new UserSummaryDto(

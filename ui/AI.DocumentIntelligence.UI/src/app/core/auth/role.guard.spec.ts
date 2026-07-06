@@ -32,7 +32,7 @@ describe('roleGuard', () => {
       role,
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    store.applyTokens(token, 'refresh-token', new Date(Date.now() + 3600_000).toISOString());
+    store.applyTokens(token, new Date(Date.now() + 3600_000).toISOString());
   }
 
   it('should allow access when the user role is in the allowed list', () => {

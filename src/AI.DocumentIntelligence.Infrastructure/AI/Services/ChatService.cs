@@ -56,6 +56,14 @@ internal sealed partial class ChatService : AiServiceBase, IChatService
             return Result.Failure<ChatResponse>(Domain.Errors.DomainErrors.Chat.NoDocuments);
         }
 
+        // Object-level authorization: the caller must own (or be admin over) every document.
+        var accessResult = await EnsureDocumentAccessAsync(
+            _currentUser, request.DocumentIds, cancellationToken);
+        if (accessResult.IsFailure)
+        {
+            return Result.Failure<ChatResponse>(accessResult.Error);
+        }
+
         var stopwatch = Stopwatch.StartNew();
 
         LogStartingChat(_logger, request.SessionId);
@@ -224,7 +232,16 @@ internal sealed partial class ChatService : AiServiceBase, IChatService
                 var existing = await sessionRepo.GetByIdAsync(request.SessionId, cancellationToken);
                 if (existing is not null)
                 {
-                    return existing;
+                    // Never append to a session owned by another user — treat a foreign
+                    // SessionId as absent and start a fresh session for this caller.
+                    if (existing.OwnerId != ownerId)
+                    {
+                        LogForeignSessionRejected(_logger, request.SessionId);
+                    }
+                    else
+                    {
+                        return existing;
+                    }
                 }
             }
             catch (Exception ex)
@@ -279,6 +296,10 @@ internal sealed partial class ChatService : AiServiceBase, IChatService
         Message = "Session persistence failed for '{SessionType}' — AI result still returned to caller")]
     private static partial void LogSessionPersistenceFailed(
         ILogger logger, string sessionType, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Chat session {SessionId} belongs to another user — creating a new session instead")]
+    private static partial void LogForeignSessionRejected(ILogger logger, Guid sessionId);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Starting chat answer for session {SessionId}")]

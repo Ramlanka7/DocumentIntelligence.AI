@@ -26,6 +26,7 @@ FROM nginx:1.27-alpine AS runtime
 
 # Replace the default nginx config with our tuned version.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 # Angular's @angular/build:application outputs to dist/<project>/browser.
 # The project is named "frontend" in angular.json.

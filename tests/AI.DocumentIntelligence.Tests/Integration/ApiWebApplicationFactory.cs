@@ -50,6 +50,11 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Jwt__Audience", TestAudience);
         Environment.SetEnvironmentVariable("Jwt__AccessTokenExpiryMinutes", "60");
         Environment.SetEnvironmentVariable("Jwt__RefreshTokenExpiryDays", "7");
+        // TestServer requests all share one rate-limit partition (RemoteIpAddress is null),
+        // so production-sized windows would throttle unrelated tests. Raise them here —
+        // rate limiting itself is not under test.
+        Environment.SetEnvironmentVariable("RateLimiting__GlobalPermitLimit", "10000");
+        Environment.SetEnvironmentVariable("RateLimiting__AuthPermitLimit", "10000");
         Environment.SetEnvironmentVariable("AzureOpenAI__Endpoint", "https://stub.openai.azure.com/");
         Environment.SetEnvironmentVariable("AzureOpenAI__ApiKey", "stub-api-key");
         Environment.SetEnvironmentVariable("AzureSearch__Endpoint", "https://stub.search.windows.net");

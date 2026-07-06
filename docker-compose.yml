@@ -88,6 +88,13 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       # Database
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Host=postgres;Port=5432;Database=document_intelligence;Username=postgres;Password=postgres}
+      # Local dev convenience: apply migrations and seed the initial admin on startup.
+      # In production, run migrations as a separate step (CD pipeline / migrate profile)
+      # and enable SeedOnStartup only with Seed__AdminPassword from a secret store.
+      Database__AutoMigrate: ${Database__AutoMigrate:-true}
+      Database__SeedOnStartup: ${Database__SeedOnStartup:-true}
+      Seed__AdminEmail: ${Seed__AdminEmail:-admin@documentintelligence.local}
+      Seed__AdminPassword: ${Seed__AdminPassword:-}
       # AzureStorage:* — read by AzureBlobFileStorage / BlobStorageOptions.
       # The Azurite dev connection string below wires the API to the local emulator container.
       # For production, replace with the real Azure Blob Storage connection string via secrets.
@@ -145,7 +152,6 @@ services:
   # This service uses the migrator build target in Dockerfile (SDK-based) and
   # runs dotnet ef database update against the postgres service.
   #
-  # NOTE: Requires T02 (EF Core DbContext + migrations) to be complete.
   # Until then the command exits 0 with "No migrations were applied."
   migrate:
     build:

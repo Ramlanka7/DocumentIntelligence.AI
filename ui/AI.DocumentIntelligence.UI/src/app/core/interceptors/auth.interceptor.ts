@@ -22,7 +22,8 @@ function withBearerToken(request: HttpRequest<unknown>, accessToken: string | nu
 /**
  * Functional HTTP interceptor (Angular 20 convention) that:
  * 1. Attaches the current Bearer access token to outgoing requests.
- * 2. On a 401 response, attempts a single token refresh and retries the original request.
+ * 2. On a 401 response, attempts a single token refresh (via the HttpOnly refresh cookie)
+ *    and retries the original request.
  * 3. If refresh also fails, clears the session so the auth guard redirects to `/login`.
  *
  * Requests tagged with `SKIP_AUTH_REFRESH` (login/refresh themselves) are passed through
@@ -48,8 +49,9 @@ export function authInterceptor(
         return throwError(() => error);
       }
 
-      const refreshToken = authStore.refreshToken();
-      if (!refreshToken) {
+      // The refresh token is an HttpOnly cookie the client cannot inspect; a refresh is
+      // only worth attempting while a session is believed to exist.
+      if (!authStore.isAuthenticated()) {
         authStore.clearSession();
         return throwError(() => error);
       }
@@ -69,9 +71,9 @@ export function authInterceptor(
 
       isRefreshing = true;
 
-      return authApi.refresh({ refreshToken }).pipe(
+      return authApi.refresh().pipe(
         switchMap((tokens) => {
-          authStore.applyTokens(tokens.accessToken, tokens.refreshToken, tokens.expiresAt);
+          authStore.applyTokens(tokens.accessToken, tokens.expiresAt);
           tokenStorage.save(tokens);
           isRefreshing = false;
           refreshCompleted$.next(tokens.accessToken);

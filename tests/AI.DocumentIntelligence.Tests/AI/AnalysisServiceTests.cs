@@ -19,6 +19,7 @@ public sealed class AnalysisServiceTests
     private readonly Mock<ISearchService> _searchMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<ICurrentUser> _userMock = new();
+    private readonly Guid _userId = Guid.NewGuid();
 
     private IAnalysisService CreateSut() =>
         new AnalysisService(
@@ -27,6 +28,15 @@ public sealed class AnalysisServiceTests
             _uowMock.Object,
             _userMock.Object,
             NullLogger<AnalysisService>.Instance);
+
+    /// <summary>Authenticates the default user and registers one owned document.</summary>
+    private Guid ArrangeOwnedDocument()
+    {
+        AiTestAuth.Authenticate(_userMock, _userId);
+        var document = AiTestAuth.NewDocumentOwnedBy(_userId);
+        AiTestAuth.SetupDocuments(_uowMock, document);
+        return document.Id;
+    }
 
     [Fact]
     public async Task AnalyzeAsync_WithNoDocuments_ReturnsFailure()
@@ -52,9 +62,49 @@ public sealed class AnalysisServiceTests
     }
 
     [Fact]
+    public async Task AnalyzeAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var request = new AnalysisRequest([Guid.NewGuid()], "ExecutiveSummary");
+
+        var result = await CreateSut().AnalyzeAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Auth.NotAuthenticated");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithForeignDocument_ReturnsAccessDenied()
+    {
+        AiTestAuth.Authenticate(_userMock, _userId);
+        var foreignDocument = AiTestAuth.NewDocumentOwnedBy(Guid.NewGuid());
+        AiTestAuth.SetupDocuments(_uowMock, foreignDocument);
+
+        var request = new AnalysisRequest([foreignDocument.Id], "ExecutiveSummary");
+
+        var result = await CreateSut().AnalyzeAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Document.AccessDenied");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithUnknownDocument_ReturnsNotFound()
+    {
+        AiTestAuth.Authenticate(_userMock, _userId);
+        AiTestAuth.SetupDocuments(_uowMock);
+
+        var request = new AnalysisRequest([Guid.NewGuid()], "ExecutiveSummary");
+
+        var result = await CreateSut().AnalyzeAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Document.NotFound");
+    }
+
+    [Fact]
     public async Task AnalyzeAsync_WhenProviderFails_ReturnsProviderError()
     {
-        var docId = Guid.NewGuid();
+        var docId = ArrangeOwnedDocument();
         var request = new AnalysisRequest([docId], "ExecutiveSummary");
 
         _searchMock
@@ -75,7 +125,7 @@ public sealed class AnalysisServiceTests
     [Fact]
     public async Task AnalyzeAsync_WithValidJsonResponse_ReturnsMappedResult()
     {
-        var docId = Guid.NewGuid();
+        var docId = ArrangeOwnedDocument();
         var request = new AnalysisRequest([docId], "ExecutiveSummary");
 
         _searchMock
@@ -109,8 +159,6 @@ public sealed class AnalysisServiceTests
                 new TokenUsage(100, 50, 0.001m),
                 "gpt-4o")));
 
-        _userMock.Setup(u => u.UserId).Returns((Guid?)null);
-
         var result = await CreateSut().AnalyzeAsync(request);
 
         result.IsSuccess.Should().BeTrue();
@@ -123,7 +171,7 @@ public sealed class AnalysisServiceTests
     [Fact]
     public async Task AnalyzeAsync_WhenJsonIsInvalid_ReturnsParseFailure()
     {
-        var docId = Guid.NewGuid();
+        var docId = ArrangeOwnedDocument();
         var request = new AnalysisRequest([docId], "ExecutiveSummary");
 
         _searchMock
@@ -137,8 +185,6 @@ public sealed class AnalysisServiceTests
                 new TokenUsage(10, 5, 0m),
                 "gpt-4o")));
 
-        _userMock.Setup(u => u.UserId).Returns((Guid?)null);
-
         var result = await CreateSut().AnalyzeAsync(request);
 
         result.IsFailure.Should().BeTrue();
@@ -148,7 +194,7 @@ public sealed class AnalysisServiceTests
     [Fact]
     public async Task AnalyzeAsync_WhenMarkdownWrappedJson_ParsesCorrectly()
     {
-        var docId = Guid.NewGuid();
+        var docId = ArrangeOwnedDocument();
         var request = new AnalysisRequest([docId], "KeyInsights");
 
         _searchMock
@@ -183,8 +229,6 @@ public sealed class AnalysisServiceTests
                 json,
                 new TokenUsage(80, 40, 0m),
                 "gpt-4o")));
-
-        _userMock.Setup(u => u.UserId).Returns((Guid?)null);
 
         var result = await CreateSut().AnalyzeAsync(request);
 

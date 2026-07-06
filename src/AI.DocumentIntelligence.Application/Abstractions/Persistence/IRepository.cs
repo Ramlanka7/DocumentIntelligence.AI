@@ -26,6 +26,20 @@ public interface IRepository<T> where T : BaseEntity
         Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns the newest entities satisfying the predicate, ordered by
+    /// <see cref="BaseEntity.CreatedAtUtc"/> descending and capped at
+    /// <paramref name="maxResults"/> — the bounded variant list endpoints must use so a
+    /// growing table can never produce an unbounded response.
+    /// </summary>
+    /// <param name="predicate">The filter expression.</param>
+    /// <param name="maxResults">The maximum number of entities to return.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public Task<IReadOnlyList<T>> FindNewestAsync(
+        Expression<Func<T, bool>> predicate,
+        int maxResults,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Schedules an entity for insertion; persisted on the next <see cref="IUnitOfWork.SaveChangesAsync"/> call.</summary>
     /// <param name="entity">The entity to add.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

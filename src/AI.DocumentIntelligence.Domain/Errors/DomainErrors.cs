@@ -45,6 +45,10 @@ public static class DomainErrors
 
         public static readonly Error NotProcessed =
             Error.Conflict("Document.NotProcessed", "The document has not finished processing.");
+
+        public static readonly Error AccessDenied =
+            Error.Forbidden("Document.AccessDenied",
+                "You do not have access to one or more of the requested documents.");
     }
 
     public static class Citation
