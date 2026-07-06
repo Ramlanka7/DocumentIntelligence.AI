@@ -78,16 +78,18 @@ export class ComparisonApiService {
       // Ingestion is asynchronous server-side: wait until every document is
       // Processed before comparing, otherwise the AI call is rejected
       // (Document.NotProcessed) or would run without retrieval context.
-error: (err: unknown) => {
-  this._loading.set(false);
-  if (err instanceof HttpErrorResponse) {
-    this._error.set('Failed to check document processing status. Please try again.');
-  } else if (err instanceof Error) {
-    this._error.set(err.message);
-  } else {
-    this._error.set('Failed to check document processing status. Please try again.');
-  }
-},
+      this.readiness.waitForProcessed(collectedIds).subscribe({
+        next: () => this.submitComparison(collectedIds, type, customInstructions),
+        error: (err: unknown) => {
+          this._loading.set(false);
+          // Surface readiness-service messages (timeouts, failed documents) but
+          // never raw HTTP error bodies.
+          if (!(err instanceof HttpErrorResponse) && err instanceof Error) {
+            this._error.set(err.message);
+          } else {
+            this._error.set('Failed to check document processing status. Please try again.');
+          }
+        },
       });
       return;
     }

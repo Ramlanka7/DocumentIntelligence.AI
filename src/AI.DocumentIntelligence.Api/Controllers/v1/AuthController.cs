@@ -123,20 +123,21 @@ public sealed class AuthController(ISender sender, ITokenService tokenService) :
             refreshToken,
             BuildRefreshCookieOptions(DateTimeOffset.UtcNow.Add(tokenService.RefreshTokenExpiry)));
 
-private CookieOptions BuildRefreshCookieOptions(DateTimeOffset? expires)
-{
-    var isLocalhost = string.Equals(Request.Host.Host, "localhost", System.StringComparison.OrdinalIgnoreCase)
-        || Request.Host.Host.StartsWith("127.");
-
-    return new CookieOptions
+    private CookieOptions BuildRefreshCookieOptions(DateTimeOffset? expires)
     {
-        HttpOnly = true,
-        // Secure cookies require HTTPS; allow plain-HTTP only for localhost dev.
-        Secure = Request.IsHttps || !isLocalhost,
-        SameSite = SameSiteMode.Strict,
-        Expires = expires,
-        // Scope the cookie to the auth endpoints only — it is never needed elsewhere,
-        // so it is never transmitted elsewhere.
-        Path = $"/api/v{RouteData.Values["version"]}/auth",
-    };
+        var isLocalhost = string.Equals(Request.Host.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || Request.Host.Host.StartsWith("127.", StringComparison.Ordinal);
+
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            // Secure cookies require HTTPS; allow plain-HTTP only for localhost dev.
+            Secure = Request.IsHttps || !isLocalhost,
+            SameSite = SameSiteMode.Strict,
+            Expires = expires,
+            // Scope the cookie to the auth endpoints only — it is never needed elsewhere,
+            // so it is never transmitted elsewhere.
+            Path = $"/api/v{RouteData.Values["version"]}/auth",
+        };
+    }
 }
