@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Coverage collection settings (coverlet / XPlat Code Coverage).
+
+  EF Core migrations and the model snapshot are generated schema code — thousands of
+  coverable lines that no test should ever execute. Counting them makes the coverage
+  number meaningless and every new migration silently dilutes it. Excluded here so the
+  CI coverage gate measures only hand-written code.
+
+  Used by CI:  dotnet test - -settings coverlet.runsettings
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -68,12 +68,15 @@ jobs:
 
       # coverlet.collector is referenced by the test project; XPlat Code Coverage
       # produces Cobertura XML consumed by ReportGenerator in the next step.
+      # coverlet.runsettings excludes EF migrations (generated schema code) so the
+      # coverage number measures hand-written code only.
       - name: Run tests with coverage collection
         run: |
           dotnet test \
             --no-build \
             --configuration Release \
             --collect:"XPlat Code Coverage" \
+            --settings coverlet.runsettings \
             --results-directory ./TestResults \
             --logger "trx;LogFileName=test-results.trx"
         env:
@@ -109,14 +112,14 @@ jobs:
           echo "---- Coverage Summary ----"
           cat CoverageReport/Summary.txt
 
-      # Fail the build if line coverage is below 45 %.
-      # The threshold can be raised incrementally as coverage improves.
-      - name: Coverage gate (>= 45 % line coverage)
+      # Fail the build if line coverage is below 60 % (currently ~72 % with generated
+      # code excluded). Raise incrementally as coverage improves; never lower it.
+      - name: Coverage gate (>= 60 % line coverage)
         run: |
           COVERAGE=$(grep -oP '(?<=Line coverage: )\d+(\.\d+)?(?=%)' CoverageReport/Summary.txt || echo "0")
           echo "Measured line coverage: ${COVERAGE}%"
-          if awk "BEGIN {exit !($COVERAGE < 45)}"; then
-            echo "FAIL: coverage ${COVERAGE}% is below the 45% threshold."
+          if awk "BEGIN {exit !($COVERAGE < 60)}"; then
+            echo "FAIL: coverage ${COVERAGE}% is below the 60% threshold."
             exit 1
           fi
           echo "PASS: coverage ${COVERAGE}% meets the minimum threshold."

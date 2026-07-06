@@ -157,38 +157,45 @@ builder.Services.AddAuthorization(opts =>
 });
 
 // ---- Rate limiting ----
-// GlobalLimiter partitions by authenticated user ID (falling back to IP for anonymous callers)
-// so that one user's traffic cannot exhaust the quota of another.
+// Both limiters partition by authenticated user ID (falling back to IP for anonymous
+// callers) so that one caller's traffic can never exhaust another's quota — this matters
+// most on the auth endpoints, where a shared bucket would let a single client lock
+// everyone out of login. Limits are config-overridable (RateLimiting:*) for tests and
+// per-environment tuning.
+var globalPermitLimit = builder.Configuration.GetValue("RateLimiting:GlobalPermitLimit", 60);
+var authPermitLimit = builder.Configuration.GetValue("RateLimiting:AuthPermitLimit", 10);
+
+static string ClientPartitionKey(HttpContext context) =>
+    context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
+    ?? context.Connection.RemoteIpAddress?.ToString()
+    ?? "anonymous";
+
 builder.Services.AddRateLimiter(opts =>
 {
     opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-    {
-        var partitionKey =
-            context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? context.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
-
-        return RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: partitionKey,
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientPartitionKey(context),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = globalPermitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0,
-            });
-    });
+            }));
 
-    // Tighter named limiter applied to auth endpoints specifically.
-    opts.AddFixedWindowLimiter("AuthEndpoints", o =>
-    {
-        o.PermitLimit = 10;
-        o.Window = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit = 0;
-    });
+    // Tighter per-client limiter applied to auth endpoints specifically.
+    opts.AddPolicy("AuthEndpoints", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientPartitionKey(context),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authPermitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            }));
 });
 
 // ---- API versioning ----
