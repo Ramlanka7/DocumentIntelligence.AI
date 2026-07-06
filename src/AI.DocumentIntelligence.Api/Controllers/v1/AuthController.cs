@@ -123,10 +123,16 @@ public sealed class AuthController(ISender sender, ITokenService tokenService) :
             refreshToken,
             BuildRefreshCookieOptions(DateTimeOffset.UtcNow.Add(tokenService.RefreshTokenExpiry)));
 
-    private CookieOptions BuildRefreshCookieOptions(DateTimeOffset? expires) => new()
+private CookieOptions BuildRefreshCookieOptions(DateTimeOffset? expires)
+{
+    var isLocalhost = string.Equals(Request.Host.Host, "localhost", System.StringComparison.OrdinalIgnoreCase)
+        || Request.Host.Host.StartsWith("127.");
+
+    return new CookieOptions
     {
         HttpOnly = true,
-        Secure = true, // Browsers treat http://localhost as a secure context in development.
+        // Secure cookies require HTTPS; allow plain-HTTP only for localhost dev.
+        Secure = Request.IsHttps || !isLocalhost,
         SameSite = SameSiteMode.Strict,
         Expires = expires,
         // Scope the cookie to the auth endpoints only — it is never needed elsewhere,
