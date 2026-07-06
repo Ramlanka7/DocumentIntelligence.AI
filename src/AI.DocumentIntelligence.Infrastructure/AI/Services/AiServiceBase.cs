@@ -16,8 +16,8 @@ using DomainTokenUsage = AI.DocumentIntelligence.Domain.ValueObjects.TokenUsage;
 namespace AI.DocumentIntelligence.Infrastructure.AI.Services;
 
 /// <summary>
-/// Shared helpers for the three AI services: context retrieval, AI completion, JSON parsing,
-/// citation mapping, and usage metric persistence (best-effort while T02 is a stub).
+/// Shared helpers for the three AI services: document access authorization, context retrieval,
+/// AI completion, JSON parsing, citation mapping, and usage metric persistence.
 /// </summary>
 internal abstract partial class AiServiceBase
 {
@@ -45,6 +45,53 @@ internal abstract partial class AiServiceBase
         _searchService = searchService;
         UnitOfWork = unitOfWork;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Verifies that the current user is authenticated and owns every requested document
+    /// (admins may access any document). Must be called before any RAG retrieval so that
+    /// one user can never run AI operations over another user's documents.
+    /// Returns <see cref="Domain.Errors.DomainErrors.Document.NotFound"/> when any ID does not
+    /// exist, and <see cref="Domain.Errors.DomainErrors.Document.AccessDenied"/> on an
+    /// ownership mismatch.
+    /// </summary>
+    protected async Task<Result> EnsureDocumentAccessAsync(
+        Application.Abstractions.Identity.ICurrentUser currentUser,
+        IReadOnlyList<Guid> documentIds,
+        CancellationToken cancellationToken)
+    {
+        if (!currentUser.IsAuthenticated || currentUser.UserId is null)
+        {
+            return Result.Failure(
+                Error.Unauthorized("Auth.NotAuthenticated", "The user is not authenticated."));
+        }
+
+        var ids = documentIds.Distinct().ToList();
+        var documents = await UnitOfWork.Repository<Document>()
+            .FindAsync(d => ids.Contains(d.Id), cancellationToken);
+
+        if (documents.Count != ids.Count)
+        {
+            return Result.Failure(Domain.Errors.DomainErrors.Document.NotFound);
+        }
+
+        var isAdmin = currentUser.Roles.Contains("Admin");
+        var userId = currentUser.UserId.Value;
+
+        if (!isAdmin && documents.Any(d => d.OwnerId != userId))
+        {
+            return Result.Failure(Domain.Errors.DomainErrors.Document.AccessDenied);
+        }
+
+        // Ingestion is asynchronous: RAG retrieval only returns chunks once a document
+        // reaches Processed. Reject early with a clear error instead of silently
+        // producing an answer with no context.
+        if (documents.Any(d => d.Status != Domain.Enums.DocumentStatus.Processed))
+        {
+            return Result.Failure(Domain.Errors.DomainErrors.Document.NotProcessed);
+        }
+
+        return Result.Success();
     }
 
     /// <summary>

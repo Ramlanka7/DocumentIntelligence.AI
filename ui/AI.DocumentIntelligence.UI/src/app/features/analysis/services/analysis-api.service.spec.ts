@@ -211,7 +211,12 @@ describe('AnalysisApiService', () => {
     service.runAnalysis([file], 'ExecutiveSummary');
 
     const uploadReq = httpMock.expectOne(`${API}/documents`);
-    uploadReq.flush({ documentId: 'doc-1', fileName: 'test.pdf', status: 'Pending' });
+    uploadReq.flush({ documentId: 'doc-1', fileName: 'test.pdf', status: 'Processing' });
+    tick();
+
+    // Readiness poll: the service waits for background ingestion to finish.
+    const statusReq = httpMock.expectOne(`${API}/documents/doc-1`);
+    statusReq.flush({ id: 'doc-1', status: 'Processed' });
     tick();
 
     const analysisReq = httpMock.expectOne(`${API}/analysis`);

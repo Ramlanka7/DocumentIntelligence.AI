@@ -33,7 +33,7 @@ describe('authInterceptor', () => {
       role: 'Analyst',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    authStore.applyTokens(token, 'refresh-token', new Date(Date.now() + 3600_000).toISOString());
+    authStore.applyTokens(token, new Date(Date.now() + 3600_000).toISOString());
   });
 
   afterEach(() => httpMock.verify());
@@ -61,10 +61,11 @@ describe('authInterceptor', () => {
     firstReq.flush({ title: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
     const refreshReq = httpMock.expectOne(`${environment.apiBaseUrl}/auth/refresh`);
-    expect(refreshReq.request.body).toEqual({ refreshToken: 'refresh-token' });
+    // The refresh token travels in the HttpOnly cookie, never in the body.
+    expect(refreshReq.request.body).toEqual({});
+    expect(refreshReq.request.withCredentials).toBeTrue();
     refreshReq.flush({
       accessToken: newAccessToken,
-      refreshToken: 'rotated-refresh-token',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     });
 

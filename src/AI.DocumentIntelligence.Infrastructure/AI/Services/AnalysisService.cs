@@ -54,6 +54,14 @@ internal sealed partial class AnalysisService : AiServiceBase, IAnalysisService
             return Result.Failure<AnalysisResult>(Domain.Errors.DomainErrors.Analysis.TooManyDocuments);
         }
 
+        // Object-level authorization: the caller must own (or be admin over) every document.
+        var accessResult = await EnsureDocumentAccessAsync(
+            _currentUser, request.DocumentIds, cancellationToken);
+        if (accessResult.IsFailure)
+        {
+            return Result.Failure<AnalysisResult>(accessResult.Error);
+        }
+
         var stopwatch = Stopwatch.StartNew();
 
         LogStartingAnalysis(_logger, request.Capability, request.DocumentIds.Count);

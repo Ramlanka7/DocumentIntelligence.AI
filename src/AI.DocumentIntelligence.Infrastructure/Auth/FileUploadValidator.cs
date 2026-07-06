@@ -78,26 +78,33 @@ internal sealed class FileUploadValidator(IOptions<UploadOptions> options) : IFi
             int bytesRead = file.Stream.Read(buffer);
             file.Stream.Seek(originalPosition, SeekOrigin.Begin);
 
+            // The declared extension and the sniffed magic bytes must AGREE.
+            // Accepting any ZIP (or any PDF) regardless of filename would let a
+            // renamed archive/executable masquerade as a supported document.
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
             if (bytesRead < 4)
             {
-                // Very small files — allow only if plain-text types.
-                return IsPlainText(file.ContentType);
+                // Very small files — allow only for declared plain-text types.
+                return IsTextExtension(extension) && IsPlainText(file.ContentType);
             }
 
-            // PDF: %PDF
-            if (MatchesMagic(buffer[..4], PdfMagic))
+            return extension switch
             {
-                return true;
-            }
+                ".pdf" => MatchesMagic(buffer[..4], PdfMagic),
 
-            // DOCX / PPTX / XLSX — ZIP-based Office Open XML
-            if (MatchesMagic(buffer[..4], ZipMagic) || MatchesMagic(buffer[..4], ZipSpanned))
-            {
-                return true;
-            }
+                // DOCX / PPTX — ZIP-based Office Open XML. The document processors
+                // fully parse the archive afterwards, rejecting non-OOXML zips.
+                ".docx" or ".pptx" =>
+                    MatchesMagic(buffer[..4], ZipMagic) || MatchesMagic(buffer[..4], ZipSpanned),
 
-            // Plain text / CSV — allow if declared as text or if content is ASCII/UTF-8 printable.
-            return IsPlainText(file.ContentType) || IsReadableText(buffer[..bytesRead]);
+                // Plain text / CSV — declared as text or ASCII/UTF-8 printable content.
+                ".txt" or ".csv" =>
+                    IsPlainText(file.ContentType) || IsReadableText(buffer[..bytesRead]),
+
+                // Unknown or missing extension — never accepted, whatever the bytes say.
+                _ => false,
+            };
         }
         catch (Exception)
         {
@@ -105,6 +112,9 @@ internal sealed class FileUploadValidator(IOptions<UploadOptions> options) : IFi
             return false;
         }
     }
+
+    private static bool IsTextExtension(string extension) =>
+        extension is ".txt" or ".csv";
 
     private static bool MatchesMagic(Span<byte> header, byte[] magic)
     {

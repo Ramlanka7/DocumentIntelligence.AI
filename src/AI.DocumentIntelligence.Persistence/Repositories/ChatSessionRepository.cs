@@ -1,4 +1,5 @@
 using AI.DocumentIntelligence.Application.Abstractions.Persistence;
+using AI.DocumentIntelligence.Application.Common;
 using AI.DocumentIntelligence.Domain.Entities;
 using AI.DocumentIntelligence.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ internal sealed class ChatSessionRepository(AppDbContext context) : IChatSession
             .Where(s => s.OwnerId == ownerId)
             .Include(s => s.Messages.OrderBy(m => m.Ordinal))
             .OrderByDescending(s => s.CreatedAtUtc)
+            .Take(QueryLimits.MaxListResults)
             .ToListAsync(cancellationToken);
 
     /// <inheritdoc />

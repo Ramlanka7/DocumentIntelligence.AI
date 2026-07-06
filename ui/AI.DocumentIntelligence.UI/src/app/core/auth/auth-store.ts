@@ -8,8 +8,8 @@ import { TokenStorageService } from './token-storage.service';
 
 /**
  * Signal-based auth state store — the single source of truth for the current session.
- * Access tokens are never held anywhere else; the HTTP auth interceptor and route guards
- * both read from this store.
+ * Only the short-lived access token is held client-side; the refresh token lives in an
+ * HttpOnly cookie managed entirely by the server and browser.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
@@ -17,13 +17,10 @@ export class AuthStore {
   private readonly tokenStorage = inject(TokenStorageService);
 
   private readonly accessTokenSignal = signal<string | null>(null);
-  private readonly refreshTokenSignal = signal<string | null>(null);
   private readonly userSignal = signal<AuthenticatedUser | null>(null);
 
   /** Current Bearer access token, or `null` when signed out. */
   readonly accessToken = this.accessTokenSignal.asReadonly();
-  /** Current refresh token, or `null` when signed out. */
-  readonly refreshToken = this.refreshTokenSignal.asReadonly();
   /** Decoded identity of the current user, or `null` when signed out. */
   readonly user = this.userSignal.asReadonly();
   /** True once a user is signed in with a (not-yet-necessarily-fresh) access token. */
@@ -47,14 +44,13 @@ export class AuthStore {
     }
 
     this.accessTokenSignal.set(stored.accessToken);
-    this.refreshTokenSignal.set(stored.refreshToken);
     this.userSignal.set({ id: decoded.sub, email: decoded.email, role: decoded.role });
   }
 
   login(request: LoginRequest): Observable<AuthenticatedUser | null> {
     return this.authApi.login(request).pipe(
       tap((tokens: AuthTokenResponse) => {
-        this.applyTokens(tokens.accessToken, tokens.refreshToken, tokens.expiresAt);
+        this.applyTokens(tokens.accessToken, tokens.expiresAt);
         this.tokenStorage.save(tokens);
       }),
       map(() => this.userSignal()),
@@ -66,20 +62,18 @@ export class AuthStore {
   }
 
   /**
-   * Applies a fresh access/refresh token pair to the in-memory signals only (no HTTP call,
+   * Applies a fresh access token to the in-memory signals only (no HTTP call,
    * no storage write) — used internally by `login`/`refresh` after the network round trip.
    */
-  applyTokens(accessToken: string, refreshToken: string, _expiresAt: string): void {
+  applyTokens(accessToken: string, _expiresAt: string): void {
     const decoded = decodeAccessToken(accessToken);
     this.accessTokenSignal.set(accessToken);
-    this.refreshTokenSignal.set(refreshToken);
     this.userSignal.set(decoded ? { id: decoded.sub, email: decoded.email, role: decoded.role } : null);
   }
 
   /** Clears in-memory signals and persisted storage — used on logout or unrecoverable 401. */
   clearSession(): void {
     this.accessTokenSignal.set(null);
-    this.refreshTokenSignal.set(null);
     this.userSignal.set(null);
     this.tokenStorage.clear();
   }

@@ -7,11 +7,6 @@ export interface LoginRequest {
   readonly password: string;
 }
 
-/** Request body for `POST /api/v1/auth/refresh`. */
-export interface RefreshTokenRequest {
-  readonly refreshToken: string;
-}
-
 /** Request body for `POST /api/v1/auth/register` (Admin-only). */
 export interface RegisterRequest {
   readonly email: string;
@@ -21,10 +16,13 @@ export interface RegisterRequest {
   readonly role: 0 | 1 | 2;
 }
 
-/** Response body shared by `login` and `refresh`. */
+/**
+ * Response body shared by `login` and `refresh`.
+ * The refresh token itself never appears here — it is delivered exclusively as an
+ * HttpOnly cookie scoped to the /auth endpoints, invisible to JavaScript by design.
+ */
 export interface AuthTokenResponse {
   readonly accessToken: string;
-  readonly refreshToken: string;
   /** ISO 8601 DateTimeOffset string. */
   readonly expiresAt: string;
 }

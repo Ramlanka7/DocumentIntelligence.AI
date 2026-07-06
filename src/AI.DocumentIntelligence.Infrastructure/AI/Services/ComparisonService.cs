@@ -52,6 +52,14 @@ internal sealed partial class ComparisonService : AiServiceBase, IComparisonServ
                 Domain.Errors.DomainErrors.Comparison.InsufficientDocuments);
         }
 
+        // Object-level authorization: the caller must own (or be admin over) every document.
+        var accessResult = await EnsureDocumentAccessAsync(
+            _currentUser, request.DocumentIds, cancellationToken);
+        if (accessResult.IsFailure)
+        {
+            return Result.Failure<ComparisonResult>(accessResult.Error);
+        }
+
         var stopwatch = Stopwatch.StartNew();
 
         LogStartingComparison(_logger, request.ComparisonType, request.DocumentIds.Count);

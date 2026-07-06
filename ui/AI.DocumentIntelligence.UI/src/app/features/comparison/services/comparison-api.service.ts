@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import { DocumentReadinessService } from '../../../core/services/document-readiness.service';
 import {
   CompareDocumentsRequest,
   ComparisonResult,
@@ -14,6 +15,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ComparisonApiService {
   private readonly http = inject(HttpClient);
+  private readonly readiness = inject(DocumentReadinessService);
   private readonly apiBase = environment.apiBaseUrl;
 
   // Private writable signals — mutated only within this service
@@ -73,7 +75,16 @@ export class ComparisonApiService {
     customInstructions?: string,
   ): void {
     if (index >= files.length) {
-      this.submitComparison(collectedIds, type, customInstructions);
+      // Ingestion is asynchronous server-side: wait until every document is
+      // Processed before comparing, otherwise the AI call is rejected
+      // (Document.NotProcessed) or would run without retrieval context.
+      this.readiness.waitForProcessed(collectedIds).subscribe({
+        next: () => this.submitComparison(collectedIds, type, customInstructions),
+        error: (err: Error) => {
+          this._loading.set(false);
+          this._error.set(err.message);
+        },
+      });
       return;
     }
 

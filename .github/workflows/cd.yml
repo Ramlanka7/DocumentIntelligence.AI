@@ -132,8 +132,6 @@ jobs:
   # new application pods are started, ensuring the schema is always at least
   # as new as the code being deployed.
   #
-  # Pre-condition: T02 (EF Core DbContext + migrations) must be complete.
-  # Until migrations exist the step logs a clear message and exits cleanly.
   # =========================================================================
   migrate:
     name: EF Core Migration
@@ -170,19 +168,11 @@ jobs:
           AzureStorage__ConnectionString: ${{ secrets.AZURE_STORAGE_CONNECTION }}
           ASPNETCORE_ENVIRONMENT: Production
         run: |
-          MIGRATION_DIR="src/AI.DocumentIntelligence.Persistence/Migrations"
-          if [ -d "$MIGRATION_DIR" ] && [ "$(ls -A "$MIGRATION_DIR" 2>/dev/null)" ]; then
-            echo "Migrations directory found — running dotnet ef database update..."
-            dotnet ef database update \
-              --project src/AI.DocumentIntelligence.Persistence \
-              --startup-project src/AI.DocumentIntelligence.Api \
-              --verbose
-            echo "Migration complete."
-          else
-            echo "No migrations directory found at $MIGRATION_DIR."
-            echo "This is expected until T02 (EF Core DbContext) is complete."
-            echo "Skipping migration step."
-          fi
+          dotnet ef database update \
+            --project src/AI.DocumentIntelligence.Persistence \
+            --startup-project src/AI.DocumentIntelligence.Api \
+            --verbose
+          echo "Migration complete."
 
   # =========================================================================
   # 3. Deploy (placeholder)

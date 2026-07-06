@@ -93,6 +93,25 @@ public static class DependencyInjection
                 "database",
                 tags: ["ready", "db"]);
 
+        // ---- Data seeding ----
+        // Creates the initial admin user (see DataSeeder). Invoked from Program.cs via
+        // SeedDatabaseAsync when Database:SeedOnStartup is enabled.
+        services.AddScoped<Seed.DataSeeder>();
+
         return services;
+    }
+
+    /// <summary>
+    /// Runs the idempotent data seeder (initial admin user) in its own DI scope.
+    /// Call after migrations have been applied. Gated in Program.cs by
+    /// <c>Database:SeedOnStartup</c>.
+    /// </summary>
+    public static async Task SeedDatabaseAsync(
+        this IServiceProvider serviceProvider,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<Seed.DataSeeder>();
+        await seeder.SeedAsync(cancellationToken);
     }
 }

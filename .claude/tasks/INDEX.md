@@ -34,21 +34,6 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 | T15 | Observability                 | T08               | dotnet-backend-engineer      | Done — branch `task/T15-observability` |
 | T16 | Testing                       | T08–T14           | test-engineer                | Done — branch `task/T16-testing` |
 | T17 | DevOps & deployment           | T00, T08, T09     | devops-engineer              | Done — branch `task/T17-devops-deployment` |
-| T03 | Application core (CQRS)       | T01, T02          | dotnet-backend-engineer      | Not started |
-| T04 | Document processing layer     | T03               | rag-ai-engineer              | Not started |
-| T05 | RAG pipeline                  | T03, T04          | rag-ai-engineer              | Not started |
-| T06 | Auth & security               | T02, T03          | dotnet-backend-engineer      | Not started |
-| T07 | AI service layer              | T03, T05          | rag-ai-engineer              | Not started |
-| T08 | API layer                     | T03, T06, T07     | dotnet-backend-engineer      | Not started |
-| T09 | Frontend foundation           | T00               | angular-frontend-engineer    | Not started |
-| T10 | Analysis feature              | T08, T09          | angular-frontend-engineer    | Not started |
-| T11 | Comparison feature            | T08, T09          | angular-frontend-engineer    | Not started |
-| T12 | Chat feature                  | T08, T09          | angular-frontend-engineer    | Not started |
-| T13 | Admin dashboard               | T08, T09          | angular-frontend-engineer    | Not started |
-| T14 | Export features               | T08, T10, T11     | dotnet-backend-engineer      | Not started |
-| T15 | Observability                 | T08               | dotnet-backend-engineer      | Not started |
-| T16 | Testing                       | T08–T14           | test-engineer                | Not started |
-| T17 | DevOps & deployment           | T00, T08, T09     | devops-engineer              | Not started |
 
 ## Milestones
 - **M1 — Backend foundation**: T00–T03 (compiles, DB migrates).
