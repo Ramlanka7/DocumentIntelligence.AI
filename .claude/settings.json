@@ -4,7 +4,22 @@
       "Bash(*)",
       "Edit",
       "Write",
-      "Read(//Users/ram/Desktop/DocumentIntelligcenPlatform/**)"
+      "Read(//Users/ram/Desktop/DocumentIntelligcenPlatform/**)",
+      "Bash(rm -v src/AI.DocumentIntelligence.Persistence/Search/PgVectorSearchService.cs src/AI.DocumentIntelligence.Persistence/ValueConverters/EmbeddingVectorConverter.cs src/AI.DocumentIntelligence.Persistence/Configurations/DocumentChunkConfiguration.cs tests/AI.DocumentIntelligence.Tests/Integration/Search/PgVectorSearchServiceTests.cs)",
+      "Bash(rmdir \"src/AI.DocumentIntelligence.Persistence/Search\" \"src/AI.DocumentIntelligence.Persistence/ValueConverters\" \"tests/AI.DocumentIntelligence.Tests/Integration/Search\")",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet test *)",
+      "Bash(sed -i -e 's|# Postgres+pgvector, Azurite, API, frontend|# Postgres, Azurite, API, frontend|' -e 's|Npgsql connection string to Postgres+pgvector.|Npgsql connection string to PostgreSQL.|' -e 's#| `AzureSearch__Endpoint`, `AzureSearch__ApiKey`, `AzureSearch__IndexName` | Optional | Blank → pgvector search is used. |#| `AzureSearch__Endpoint`, `AzureSearch__ApiKey`, `AzureSearch__IndexName` | **Yes** | Sole search engine; the API refuses to start if endpoint or key is blank. |#' -e 's|Testcontainers \\(pgvector + Azurite\\)|Testcontainers \\(PostgreSQL + Azurite\\)|' -e 's|pgvector/Azurite Testcontainers tests|PostgreSQL/Azurite Testcontainers tests|' docs/DEPLOYMENT.md)",
+      "Bash(sed -i -e 's#| PostgreSQL + `pgvector` |#| PostgreSQL \\(relational state\\); Azure AI Search \\(chunks + embeddings\\) |#' -e 's|# Local stack \\(Postgres + pgvector, Azurite, Api, frontend\\)|# Local stack \\(Postgres, Azurite, Api, frontend\\)|' README.md)",
+      "Bash(dotnet format *)",
+      "Bash(git stash *)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(git commit -q -m '@ *)",
+      "Bash(git commit *)",
+      "Bash(git commit -q -m 'docs: correct stale delete-path comments after pgvector removal *)"
     ],
     "deny": []
   },

@@ -47,13 +47,14 @@ internal sealed partial class DeleteDocumentCommandHandler(
 
         var storagePath = document.StoragePath;
 
-        // 1. Remove the entity and commit — DB-level cascade removes the pgvector chunks.
+        // 1. Remove the entity and commit. This also removes the extracted text held on the row.
         documentRepository.Remove(document);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 2. Best-effort cleanup of the search index (required for external indexes such as
-        //    Azure AI Search that the DB cascade cannot reach). Failure leaves stale entries
-        //    that are filtered out at query time by document ID; log and continue.
+        // 2. Best-effort cleanup of the search index. Azure AI Search is the sole store for
+        //    chunk content and embeddings, so nothing in the database removes them. Failure
+        //    leaves stale entries that are filtered out at query time by document ID;
+        //    log and continue.
         var deleteIndexResult = await searchService.DeleteByDocumentAsync(request.Id, cancellationToken);
         if (deleteIndexResult.IsFailure)
         {
