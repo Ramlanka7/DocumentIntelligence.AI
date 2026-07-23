@@ -5,7 +5,7 @@
 ## Explicitly naming the services on the command line (api frontend) ensures
 ## postgres, azurite, and migrate — which are local-dev services — do not start.
 ## In production, those roles are fulfilled by managed Azure services:
-##   DB    → Azure Database for PostgreSQL Flexible Server (with pgvector)
+##   DB    → Azure Database for PostgreSQL Flexible Server
 ##   Blob  → Azure Blob Storage
 ##   Search→ Azure AI Search
 ##

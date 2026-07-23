@@ -5,13 +5,14 @@ using AI.DocumentIntelligence.Domain.ValueObjects;
 namespace AI.DocumentIntelligence.Domain.Entities;
 
 /// <summary>
-/// An uploaded source document. Owns its <see cref="FileMetadata"/> and the chunks produced
-/// by the processing pipeline, and tracks its lifecycle <see cref="DocumentStatus"/>.
+/// An uploaded source document. Owns its <see cref="FileMetadata"/> and tracks its lifecycle
+/// <see cref="DocumentStatus"/>.
+///
+/// Chunks are produced in-memory by the ingestion pipeline and pushed to the search index;
+/// they are not persisted here.
 /// </summary>
 public sealed class Document : AuditableEntity
 {
-    private readonly List<DocumentChunk> _chunks = [];
-
     private Document()
     {
         // EF / serialization constructor.
@@ -43,8 +44,6 @@ public sealed class Document : AuditableEntity
 
     public string? FailureReason { get; private set; }
 
-    public IReadOnlyCollection<DocumentChunk> Chunks => _chunks.AsReadOnly();
-
     public static Document Create(Guid ownerId, FileMetadata metadata, DocumentType type, string storagePath) =>
         new(Guid.NewGuid(), ownerId, metadata, type, storagePath);
 
@@ -64,8 +63,4 @@ public sealed class Document : AuditableEntity
         FailureReason = reason;
         Status = DocumentStatus.Failed;
     }
-
-    public void AddChunk(DocumentChunk chunk) => _chunks.Add(chunk);
-
-    public void ClearChunks() => _chunks.Clear();
 }

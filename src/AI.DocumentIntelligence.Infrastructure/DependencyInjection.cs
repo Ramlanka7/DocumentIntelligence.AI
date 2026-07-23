@@ -110,6 +110,24 @@ public static class DependencyInjection
         }
 
         // ---- Azure AI Search (T05) ----
+        // Azure AI Search is the platform's only search engine. There is deliberately no
+        // alternate implementation selected at runtime: a single engine means the code path
+        // exercised in development and CI is the same one that serves production traffic.
+        //
+        // Missing configuration is a deployment error, not a signal to degrade to something
+        // else — so it fails here, at startup, rather than on the first user search.
+        var searchEndpoint = configuration[$"{AzureSearchOptions.SectionName}:Endpoint"];
+        var searchApiKey = configuration[$"{AzureSearchOptions.SectionName}:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(searchEndpoint) || string.IsNullOrWhiteSpace(searchApiKey))
+        {
+            throw new InvalidOperationException(
+                $"{AzureSearchOptions.SectionName}:Endpoint and {AzureSearchOptions.SectionName}:ApiKey " +
+                "are required — Azure AI Search backs all document retrieval. " +
+                $"Set {AzureSearchOptions.SectionName}__Endpoint and {AzureSearchOptions.SectionName}__ApiKey " +
+                "in the environment, appsettings, or user-secrets before starting the API.");
+        }
+
         services.Configure<AzureSearchOptions>(
             configuration.GetSection(AzureSearchOptions.SectionName));
 

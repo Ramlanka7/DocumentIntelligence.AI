@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Pgvector.EntityFrameworkCore;
 
 namespace AI.DocumentIntelligence.Persistence.Context;
 
@@ -19,9 +18,7 @@ internal sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbCon
             ?? "Host=localhost;Port=5432;Database=document_intelligence;Username=postgres;Password=postgres";
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseNpgsql(
-            connectionString,
-            npgsql => npgsql.UseVector());
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new AppDbContext(optionsBuilder.Options);
     }

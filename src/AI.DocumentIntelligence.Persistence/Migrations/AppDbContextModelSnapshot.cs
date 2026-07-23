@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Pgvector;
 
 #nullable disable
 
@@ -22,7 +21,6 @@ namespace AI.DocumentIntelligence.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.AiUsageMetric", b =>
@@ -480,66 +478,6 @@ namespace AI.DocumentIntelligence.Persistence.Migrations
                     b.ToTable("documents", (string)null);
                 });
 
-            modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.DocumentChunk", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<Guid>("DocumentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("document_id");
-
-                    b.Property<Vector>("Embedding")
-                        .HasColumnType("vector(1536)")
-                        .HasColumnName("embedding");
-
-                    b.Property<int>("Index")
-                        .HasColumnType("integer")
-                        .HasColumnName("index");
-
-                    b.Property<int>("PageNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("page_number");
-
-                    b.Property<string>("ParagraphReference")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("paragraph_reference");
-
-                    b.Property<int>("TokenCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("token_count");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DocumentId")
-                        .HasDatabaseName("ix_document_chunks_document_id");
-
-                    b.HasIndex("Embedding")
-                        .HasDatabaseName("ix_document_chunks_embedding_hnsw");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
-
-                    b.ToTable("document_chunks", (string)null);
-                });
-
             modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -858,23 +796,9 @@ namespace AI.DocumentIntelligence.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.DocumentChunk", b =>
-                {
-                    b.HasOne("AI.DocumentIntelligence.Domain.Entities.Document", null)
-                        .WithMany("Chunks")
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.ChatSession", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("AI.DocumentIntelligence.Domain.Entities.Document", b =>
-                {
-                    b.Navigation("Chunks");
                 });
 #pragma warning restore 612, 618
         }

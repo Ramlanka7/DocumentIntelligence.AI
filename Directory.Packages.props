@@ -19,13 +19,11 @@
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <PackageVersion Include="AutoMapper" Version="15.1.1" />
 
-    <!-- EF Core / PostgreSQL + pgvector -->
+    <!-- EF Core / PostgreSQL -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.1" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-    <PackageVersion Include="Pgvector" Version="0.3.1" />
-    <PackageVersion Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
 
     <!-- Auth -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />

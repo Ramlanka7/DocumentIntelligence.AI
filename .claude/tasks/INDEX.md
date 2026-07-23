@@ -18,7 +18,7 @@ Status values: `Not started` · `In progress` · `Blocked` · `Done`
 |-----|-------------------------------|-------------------|------------------------------|-------------|
 | T00 | Foundation & repo setup       | —                 | devops-engineer              | Done        |
 | T01 | Domain layer                  | T00               | dotnet-backend-engineer      | Done        |
-| T02 | Persistence (EF Core+pgvector)| T00, T01          | dotnet-backend-engineer      | Done        |
+| T02 | Persistence (EF Core)         | T00, T01          | dotnet-backend-engineer      | Done — pgvector removed on `task/remove-pgvector`; Azure AI Search is the sole search engine |
 | T03 | Application core (CQRS)       | T01, T02          | dotnet-backend-engineer      | Done        |
 | T04 | Document processing layer     | T03               | rag-ai-engineer              | Done        |
 | T05 | RAG pipeline                  | T03, T04          | rag-ai-engineer              | Done        |

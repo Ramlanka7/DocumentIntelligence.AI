@@ -70,16 +70,6 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
                 .IsRequired();
         });
 
-        // Chunks collection: one-to-many on public property, backed by _chunks field.
-        builder.HasMany(d => d.Chunks)
-            .WithOne()
-            .HasForeignKey(c => c.DocumentId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Navigation(d => d.Chunks)
-            .HasField("_chunks")
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
-
         builder.HasIndex(d => d.OwnerId)
             .HasDatabaseName("ix_documents_owner_id");
 

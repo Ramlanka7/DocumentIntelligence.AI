@@ -4,7 +4,10 @@ namespace AI.DocumentIntelligence.Domain.Entities;
 
 /// <summary>
 /// A retrievable slice of a <see cref="Document"/> with the location metadata needed to build
-/// citations and an optional embedding vector for semantic search (pgvector).
+/// citations and an optional embedding vector for semantic search.
+///
+/// This is a transient pipeline type, not a persisted entity: chunks are produced during
+/// ingestion and pushed to the search index, which is their system of record.
 /// </summary>
 public sealed class DocumentChunk : BaseEntity
 {

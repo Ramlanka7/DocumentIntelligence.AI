@@ -3,11 +3,9 @@ using AI.DocumentIntelligence.Application.Abstractions.Search;
 using AI.DocumentIntelligence.Persistence.Context;
 using AI.DocumentIntelligence.Persistence.HealthChecks;
 using AI.DocumentIntelligence.Persistence.Repositories;
-using AI.DocumentIntelligence.Persistence.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AI.DocumentIntelligence.Persistence;
 
@@ -17,19 +15,12 @@ namespace AI.DocumentIntelligence.Persistence;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers EF Core, repositories, the Unit of Work, and — when Azure AI Search is not
-    /// configured — the pgvector-backed <see cref="ISearchService"/>.
+    /// Registers EF Core, repositories, and the Unit of Work.
     ///
-    /// Search provider selection rules (Open/Closed — no code change required to switch):
-    /// <list type="bullet">
-    ///   <item><c>AzureSearch:Endpoint</c> present  →  Infrastructure's <c>AzureSearchService</c>
-    ///     is used (registered by <c>AddInfrastructure</c>).</item>
-    ///   <item><c>AzureSearch:Endpoint</c> absent / blank  →  <see cref="PgVectorSearchService"/>
-    ///     is registered here, overriding the Azure registration.</item>
-    /// </list>
-    ///
-    /// <c>AddPersistence</c> is called after <c>AddInfrastructure</c> in Program.cs, so the
-    /// override is applied last and wins at DI resolution time.
+    /// Document retrieval is not wired here — Azure AI Search is the sole
+    /// <see cref="ISearchService"/> and is registered by <c>AddInfrastructure</c>.
+    /// PostgreSQL stores only relational state: users, documents, sessions, audit logs
+    /// and usage metrics.
     /// </summary>
     public static IServiceCollection AddPersistence(
         this IServiceCollection services,
@@ -45,17 +36,14 @@ public static class DependencyInjection
         {
             if (!string.IsNullOrWhiteSpace(connectionString))
             {
-                options.UseNpgsql(
-                    connectionString,
-                    npgsql => npgsql.UseVector());
+                options.UseNpgsql(connectionString);
             }
             else
             {
                 // When no real connection string is configured (e.g., integration tests with
                 // in-memory fakes), configure a placeholder so the DI graph compiles.
                 options.UseNpgsql(
-                    "Host=localhost;Database=placeholder;Username=placeholder;Password=placeholder",
-                    npgsql => npgsql.UseVector());
+                    "Host=localhost;Database=placeholder;Username=placeholder;Password=placeholder");
             }
         });
 
@@ -66,26 +54,6 @@ public static class DependencyInjection
 
         // Generic IRepository<T> — resolves Repository<T> for any entity type.
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
-        // ---- Search provider selection ----
-        // Infrastructure (AddInfrastructure, called before this) always registers
-        // AzureSearchService as ISearchService.  When AzureSearch:Endpoint is blank the
-        // Azure SDK would fail at runtime, so we replace it with PgVectorSearchService.
-        //
-        // PgVectorSearchService is registered as a Singleton and uses IServiceScopeFactory
-        // to create a fresh scoped AppDbContext for each operation — the correct pattern
-        // for singleton services that depend on scoped EF Core contexts.
-        //
-        // To switch to Azure AI Search: set AzureSearch:Endpoint and AzureSearch:ApiKey
-        // in configuration. No code change is required (Open/Closed Principle).
-        var azureSearchEndpoint = configuration["AzureSearch:Endpoint"];
-        if (string.IsNullOrWhiteSpace(azureSearchEndpoint))
-        {
-            // Remove whatever ISearchService was registered by Infrastructure.
-            services.RemoveAll<ISearchService>();
-
-            services.AddSingleton<ISearchService, PgVectorSearchService>();
-        }
 
         // ---- Health checks ----
         services.AddHealthChecks()

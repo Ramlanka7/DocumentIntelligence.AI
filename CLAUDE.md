@@ -10,7 +10,8 @@ session — you never need to restate them in a prompt.
 ## Tech stack (standing facts)
 - **Frontend**: Angular 20, standalone components, Signals, Angular Material, Tailwind, TypeScript (strict), dark theme.
 - **Backend**: .NET 10 Web API, Clean Architecture, CQRS/MediatR, FluentValidation, AutoMapper, Repository + Unit of Work.
-- **Database**: PostgreSQL + `pgvector`.
+- **Database**: PostgreSQL — relational state only (users, documents, sessions, audit, usage).
+  Document chunks and embeddings are **not** stored here; Azure AI Search is their system of record.
 - **AI & search**: Azure OpenAI (Foundry) + Azure AI Search. Provider abstracted via `IAIProvider`;
   **Azure OpenAI is the default**, with Anthropic Claude / OpenAI / Ollama behind the same interface.
 - **Observability**: Serilog, Application Insights, OpenTelemetry. **DevOps**: Docker, Docker Compose, GitHub Actions.
@@ -88,7 +89,8 @@ For role-specific work, delegate to the project subagents instead of re-describi
 
 ### Local stack (Docker Compose)
 - Copy env template once: `cp .env.example .env`
-- Start everything (Postgres+pgvector, Azurite, Api, frontend): `docker compose up -d`
+- Start everything (Postgres, Azurite, Api, frontend): `docker compose up -d`
+  Requires `AzureSearch__Endpoint` / `AzureSearch__ApiKey` in `.env` — the API will not start without them.
 - Validate compose files without starting anything: `docker compose config`
 - Production-shaped overlay: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`
 - Tear down: `docker compose down` (add `-v` to also drop the Postgres/Azurite volumes)

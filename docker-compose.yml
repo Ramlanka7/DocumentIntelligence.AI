@@ -10,9 +10,11 @@ name: ai-document-intelligence
 # ---------------------------------------------------------------------------
 
 services:
-  # ---- PostgreSQL + pgvector -----------------------------------------------
+  # ---- PostgreSQL ----------------------------------------------------------
+  # Relational state only: users, documents, sessions, audit logs, usage metrics.
+  # Document chunks and embeddings live in Azure AI Search, not here.
   postgres:
-    image: pgvector/pgvector:pg17
+    image: postgres:17
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-document_intelligence}
@@ -51,25 +53,14 @@ services:
       - azurite-data:/data
 
   # ---------------------------------------------------------------------------
-  # Azure AI Search has no official local container/emulator — it is a managed
-  # Azure cloud service.
+  # Azure AI Search is a managed cloud service with no local container or
+  # emulator, and it is the platform's only search engine — there is no local
+  # substitute by design, so the same retrieval path runs everywhere.
   #
-  # LOCAL FALLBACK (active when AzureSearch__Endpoint is blank):
-  #   PgVectorSearchService (in AI.DocumentIntelligence.Persistence/Search/) is
-  #   registered automatically as ISearchService. It stores and retrieves chunks
-  #   against the postgres service above using pgvector's <=> cosine operator and
-  #   the HNSW index created by the InitialCreate migration.
-  #
-  #   To activate Azure AI Search instead: set AzureSearch__Endpoint and
-  #   AzureSearch__ApiKey in your .env file (or environment). No code change needed.
+  # REQUIRED: set AzureSearch__Endpoint and AzureSearch__ApiKey in your .env
+  # against a real (dev-tier) Azure AI Search resource. The API refuses to start
+  # without them rather than silently degrading.
   # ---------------------------------------------------------------------------
-  # ai-search-stub:
-  #   image: mcr.microsoft.com/azure-search/search-emulator:placeholder
-  #   profiles: ["search-stub"]
-  #   environment:
-  #     AzureSearch__Endpoint: ${AzureSearch__Endpoint:-}
-  #     AzureSearch__ApiKey: ${AzureSearch__ApiKey:-}
-  #     AzureSearch__IndexName: ${AzureSearch__IndexName:-document-chunks}
 
   # ---- API -----------------------------------------------------------------
   api:
@@ -113,9 +104,9 @@ services:
       AzureOpenAI__ChatDeployment: ${AzureOpenAI__ChatDeployment:-gpt-4o}
       AzureOpenAI__EmbeddingDeployment: ${AzureOpenAI__EmbeddingDeployment:-text-embedding-3-small}
       AzureOpenAI__EmbeddingDimensions: ${AzureOpenAI__EmbeddingDimensions:-1536}
-      # Azure AI Search (leave blank locally; pgvector fallback is used)
-      AzureSearch__Endpoint: ${AzureSearch__Endpoint:-}
-      AzureSearch__ApiKey: ${AzureSearch__ApiKey:-}
+      # Azure AI Search — REQUIRED. The only search engine; the API will not start without it.
+      AzureSearch__Endpoint: ${AzureSearch__Endpoint:?AzureSearch__Endpoint is required — set it in .env}
+      AzureSearch__ApiKey: ${AzureSearch__ApiKey:?AzureSearch__ApiKey is required — set it in .env}
       AzureSearch__IndexName: ${AzureSearch__IndexName:-document-chunks}
       # Application Insights (optional)
       ApplicationInsights__ConnectionString: ${ApplicationInsights__ConnectionString:-}

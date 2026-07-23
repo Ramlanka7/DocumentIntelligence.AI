@@ -14,7 +14,7 @@ Standing conventions and architecture rules live in [`CLAUDE.md`](CLAUDE.md).
 |----------------|------------|
 | Frontend       | Angular 20, standalone components, Signals, Angular Material, Tailwind CSS, dark theme |
 | Backend        | .NET 10 Web API, Clean Architecture, CQRS/MediatR, FluentValidation, AutoMapper |
-| Database       | PostgreSQL + `pgvector` |
+| Database       | PostgreSQL (relational state); Azure AI Search (chunks + embeddings) |
 | AI & Search    | Azure OpenAI (Foundry) + Azure AI Search, behind a provider-agnostic `IAIProvider` |
 | Observability  | Serilog, Application Insights, OpenTelemetry |
 | DevOps         | Docker, Docker Compose, GitHub Actions |
@@ -57,7 +57,7 @@ npm ci
 npm run build
 cd ../..
 
-# Local stack (Postgres + pgvector, Azurite, Api, frontend)
+# Local stack (Postgres, Azurite, Api, frontend)
 cp .env.example .env
 docker compose up -d
 ```

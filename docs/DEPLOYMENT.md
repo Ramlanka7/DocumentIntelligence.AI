@@ -2,8 +2,8 @@
 
 This guide covers running the platform locally, configuring it for production, applying the
 database schema, and the CI/CD pipeline. It reflects the actual repository state (verified: the
-backend builds with 0 warnings, 319 tests pass including real pgvector + Azurite Testcontainers
-integration tests; the frontend builds and 113 specs pass).
+backend builds with 0 warnings; 339 backend tests, of which the Testcontainers-based integration
+tests require a running Docker daemon; the frontend builds and 113 specs pass).
 
 ## Architecture at a glance
 
@@ -11,14 +11,20 @@ integration tests; the frontend builds and 113 specs pass).
 |-----------|------|-----------|
 | Frontend | Angular 20 (nginx) | `ui/AI.DocumentIntelligence.UI/Dockerfile` |
 | API | .NET 10 Web API | root `Dockerfile` (multi-stage: `build` → `final`, plus `migrator`) |
-| Database | PostgreSQL 17 + pgvector | `pgvector/pgvector:pg17` |
+| Database | PostgreSQL 17 (relational state only) | `postgres:17` |
 | Blob storage | Azure Blob (Azurite locally) | `mcr.microsoft.com/azure-storage/azurite` |
-| Vector search | pgvector (default) or Azure AI Search | in-process |
+| Vector + keyword search | Azure AI Search (sole engine) | external, managed |
 | AI | Azure OpenAI (default `IAIProvider`); OpenAI / Anthropic / Ollama pluggable | external |
 
-**Search provider selection is automatic:** when `AzureSearch:Endpoint` is blank the app uses the
-in-database **pgvector** search service (`PgVectorSearchService`); set the Azure AI Search endpoint +
-key to switch to Azure AI Search — no code change (Open/Closed).
+**Search has one engine, in every environment.** Azure AI Search stores document chunks and their
+embeddings and serves all retrieval. There is deliberately no local or in-database alternative: a
+single implementation means the code path exercised in development and CI is the same one that
+serves production traffic, and retrieval quality does not vary by environment.
+
+`AzureSearch:Endpoint` and `AzureSearch:ApiKey` are therefore **required**. Missing values are a
+deployment error, not a signal to degrade — `AddInfrastructure` throws at startup rather than
+letting the API come up and fail on the first user search. Local development points at a dev-tier
+Azure AI Search resource.
 
 **Storage provider selection is automatic:** when `AzureStorage:ConnectionString` is non-empty the app
 uses `AzureBlobFileStorage`; otherwise it falls back to `LocalFileStorage` (dev only — ephemeral disk).
@@ -27,7 +33,7 @@ uses `AzureBlobFileStorage`; otherwise it falls back to `LocalFileStorage` (dev 
 
 ```bash
 cp .env.example .env                 # fill in secrets (see §3)
-docker compose up -d                 # Postgres+pgvector, Azurite, API, frontend
+docker compose up -d                 # Postgres, Azurite, API, frontend
 docker compose --profile migrate run --rm migrate   # apply EF Core migrations
 ```
 
@@ -46,8 +52,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ## 2. Database schema / migrations
 
 The schema is created by EF Core migrations (initial migration `InitialCreate` under
-`src/AI.DocumentIntelligence.Persistence/Migrations/`). It enables the `vector` extension and creates
-all 10 tables, including `document_chunks.embedding vector(1536)` with an HNSW cosine index.
+`src/AI.DocumentIntelligence.Persistence/Migrations/`). It creates the 8 relational tables — users,
+documents, analysis/comparison/chat sessions, chat messages, audit logs and AI usage metrics.
+No PostgreSQL extensions are required. Document chunks and embeddings are not stored in the
+database; Azure AI Search holds them.
 
 - Via compose: `docker compose --profile migrate run --rm migrate`
 - Via CLI:
@@ -88,10 +96,10 @@ secrets, etc.) in CI/CD.
 |-----|----------|-------|
 | `Jwt__SecretKey` | **Yes** | ≥ 256-bit. App refuses to start with the placeholder. |
 | `Jwt__Issuer`, `Jwt__Audience` | Yes | Token validation. |
-| `ConnectionStrings__DefaultConnection` | **Yes** | Npgsql connection string to Postgres+pgvector. |
+| `ConnectionStrings__DefaultConnection` | **Yes** | Npgsql connection string to PostgreSQL. |
 | `AzureOpenAI__Endpoint`, `AzureOpenAI__ApiKey`, `AzureOpenAI__ChatDeployment`, `AzureOpenAI__EmbeddingDeployment` | Yes (for real AI) | Default provider. Leave blank to run without live AI (calls will fail gracefully). |
 | `AzureStorage__ConnectionString`, `AzureStorage__ContainerName` | Prod | Non-empty activates durable blob storage. |
-| `AzureSearch__Endpoint`, `AzureSearch__ApiKey`, `AzureSearch__IndexName` | Optional | Blank → pgvector search is used. |
+| `AzureSearch__Endpoint`, `AzureSearch__ApiKey`, `AzureSearch__IndexName` | **Yes** | Sole search engine; the API refuses to start if endpoint or key is blank. |
 | `Ai__ProviderName` | Optional | Switch `IAIProvider` (AzureOpenAI / OpenAI / Anthropic / Ollama). |
 | `ApplicationInsights__ConnectionString` / OTLP exporter vars | Optional | Observability exporters activate only when configured. |
 
@@ -109,7 +117,7 @@ secrets, etc.) in CI/CD.
 
 - **`ci.yml`** (on PR/push): `dotnet format --verify-no-changes`, backend build + `dotnet test`,
   frontend `npm ci` + build + headless tests, and a no-push Docker image build.
-  > Note: the integration tests use Testcontainers (pgvector + Azurite), so the CI runner must have
+  > Note: the integration tests use Testcontainers (PostgreSQL + Azurite), so the CI runner must have
   > Docker available (GitHub-hosted Linux runners do).
 - **`cd.yml`** (on release/main): builds and pushes API + frontend images to GHCR, runs EF Core
   migrations against the target database, then deploys.
@@ -118,7 +126,8 @@ secrets, etc.) in CI/CD.
 
 - [ ] Strong `Jwt__SecretKey` and all secrets sourced from a secret store (not `.env`).
 - [ ] `ASPNETCORE_ENVIRONMENT=Production` (Swagger disabled; enforced by the prod overlay).
-- [ ] Managed Postgres with the `vector` extension available; migrations applied.
+- [ ] Managed Postgres provisioned; migrations applied (no extensions required).
+- [ ] `AzureSearch__Endpoint` / `AzureSearch__ApiKey` set — the API will not start without them.
 - [ ] `AzureStorage__ConnectionString` points at real Blob Storage (uploads must be durable).
 - [ ] Real `AzureOpenAI` (or chosen provider) credentials configured.
 - [ ] TLS terminated at the ingress; `/health/*` wired to orchestrator probes.
@@ -140,4 +149,4 @@ secrets, etc.) in CI/CD.
 - **Combined-page limit (500 pages across a session)** is not yet enforced server-side; the UI caps
   uploads at 4 documents. Add a session-level page-count guard for strict enforcement.
 - **API integration tests use in-memory fakes** for speed; real-DB coverage is provided by the
-  pgvector/Azurite Testcontainers tests. Converting the full API suite to Testcontainers is optional.
+  PostgreSQL/Azurite Testcontainers tests. Converting the full API suite to Testcontainers is optional.

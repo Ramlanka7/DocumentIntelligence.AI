@@ -6,7 +6,10 @@ namespace AI.DocumentIntelligence.Persistence.Context;
 
 /// <summary>
 /// EF Core database context for the AI Document Intelligence Platform.
-/// Wires all domain entities to PostgreSQL with pgvector support.
+/// Wires all domain entities to PostgreSQL.
+///
+/// Document chunks and their embeddings are not stored here — Azure AI Search is the
+/// single store for retrievable chunk content and vectors.
 /// </summary>
 public sealed class AppDbContext : DbContext
 {
@@ -17,7 +20,6 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Document> Documents => Set<Document>();
-    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
     public DbSet<AnalysisSession> AnalysisSessions => Set<AnalysisSession>();
     public DbSet<ComparisonSession> ComparisonSessions => Set<ComparisonSession>();
     public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
@@ -28,9 +30,6 @@ public sealed class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Enable the pgvector extension.
-        modelBuilder.HasPostgresExtension("vector");
 
         // Apply all IEntityTypeConfiguration<T> implementations in this assembly.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
